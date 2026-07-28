@@ -115,7 +115,10 @@ const nextConfig = {
     // Kept a little above MAX_UPLOAD_BYTES (512 MB) so the application's own
     // limit is the one that rejects an oversized upload, with a message that
     // says so.
-    largePageDataBytes: 512 * 1024 * 1024,
+    //
+    // Note this is a self-hosted setting. Vercel caps a serverless function's
+    // request body at 4.5 MB regardless of what is configured here, so large
+    // uploads there need the chunked session endpoints, not this route.
     middlewareClientMaxBodySize: 544 * 1024 * 1024,
   },
 
