@@ -4,43 +4,39 @@
   "regions": ["fra1"],
   "functions": {
     "src/app/api/cron/process/route.ts": {
-      "maxDuration": 300,
-      "memory": 3009
+      "maxDuration": 60,
+      "memory": 2048
     },
     "src/app/api/cron/cleanup/route.ts": {
-      "maxDuration": 300
+      "maxDuration": 60
     },
     "src/app/api/uploads/route.ts": {
-      "maxDuration": 300,
-      "memory": 3009
+      "maxDuration": 60,
+      "memory": 2048
     },
     "src/app/api/uploads/sessions/[id]/route.ts": {
-      "maxDuration": 300
+      "maxDuration": 60
     },
     "src/app/api/uploads/sessions/[id]/complete/route.ts": {
-      "maxDuration": 300,
-      "memory": 3009
+      "maxDuration": 60,
+      "memory": 2048
     },
     "src/app/api/tools/pdf/route.ts": {
-      "maxDuration": 300,
-      "memory": 3009
+      "maxDuration": 60,
+      "memory": 2048
     },
     "src/app/api/tools/archive/route.ts": {
-      "maxDuration": 300,
-      "memory": 3009
+      "maxDuration": 60,
+      "memory": 2048
     },
     "src/app/api/jobs/[id]/download/route.ts": {
-      "maxDuration": 300
+      "maxDuration": 60
     }
   },
   "crons": [
     {
-      "path": "/api/cron/process",
-      "schedule": "*/2 * * * *"
-    },
-    {
       "path": "/api/cron/cleanup",
-      "schedule": "0 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
