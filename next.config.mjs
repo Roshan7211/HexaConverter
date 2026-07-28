@@ -107,11 +107,30 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
 
-  // The tracer follows `require`/`import`, so it finds pdfjs but not the font
-  // files it loads by URL at run time. Without these, rasterisation on a
-  // serverless host silently renders pages with every glyph missing.
+  // Packages in `serverExternalPackages` are not bundled, so they have to be
+  // traced out of node_modules instead — and the tracer misses three things
+  // here, each of which fails only once deployed:
+  //
+  //   pdfjs is reached through `await import('pdfjs-dist/legacy/build/pdf.mjs')`.
+  //   A deep dynamic path into an externalised package is not followed, so the
+  //   whole build directory is listed explicitly. Without it every PDF route
+  //   fails at run time while working perfectly in local builds.
+  //
+  //   The standard fonts are fetched by URL, not imported, so nothing links to
+  //   them. Missing, pdfjs renders pages with every glyph absent — and only
+  //   warns.
+  //
+  //   The canvas's native binary is an optional dependency picked by platform
+  //   at require time; the linux build is never referenced from a machine that
+  //   builds on macOS.
   outputFileTracingIncludes: {
-    '/api/**': ['./node_modules/pdfjs-dist/standard_fonts/**'],
+    '/api/**': [
+      './node_modules/pdfjs-dist/legacy/**',
+      './node_modules/pdfjs-dist/standard_fonts/**',
+      './node_modules/@napi-rs/canvas/**',
+      './node_modules/@napi-rs/canvas-linux-x64-gnu/**',
+      './node_modules/docx/**',
+    ],
   },
 
   images: {
