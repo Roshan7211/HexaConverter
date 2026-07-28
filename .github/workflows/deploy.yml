@@ -1,0 +1,210 @@
+# Continuous delivery.
+#
+# `ci.yml` proves the commit is good. This publishes it and rolls it out.
+# Kept in a separate workflow so the gate and the delivery can be reasoned
+# about — and re-run — independently.
+#
+# Triggered by a semver tag, not by every push to main. A deploy should be a
+# deliberate act with a name you can roll back to, and `git tag v1.2.3` is that
+# act. `workflow_dispatch` covers the redeploy-without-a-new-tag case.
+#
+# Required repository configuration:
+#   Settings > Secrets           SSH_HOST, SSH_USER, SSH_KEY
+#   Settings > Environments      create `production`, add required reviewers
+# GHCR needs no secret: GITHUB_TOKEN can push to the repository's own registry.
+
+name: Deploy
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Tag or SHA to deploy'
+        required: true
+
+concurrency:
+  group: deploy-production
+  # Never cancel a deploy in flight: a half-applied rollout is worse than a
+  # queued one.
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # --- Re-verify -------------------------------------------------------------
+  # A tag can point at a commit that never went through a pull request, so the
+  # gate runs again here rather than being assumed.
+  verify:
+    name: Verify
+    uses: ./.github/workflows/ci.yml
+
+  # --- Build and publish -----------------------------------------------------
+  publish:
+    name: Build and push image
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+      # Lets the build attach a signed provenance attestation, so the image can
+      # be traced back to this workflow run.
+      id-token: write
+      attestations: write
+
+    outputs:
+      image: ${{ steps.meta.outputs.tags }}
+      digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+
+      - name: Attest provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+  # --- Vulnerability scan ----------------------------------------------------
+  # Reports rather than blocks. A CVE in a base-image package is not usually a
+  # reason to refuse a deploy that fixes something else, but it should never go
+  # unnoticed either.
+  scan:
+    name: Scan image
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+
+    steps:
+      - name: Trivy
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.publish.outputs.digest }}
+          format: sarif
+          output: trivy.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy.sarif
+
+  # --- Roll out --------------------------------------------------------------
+  deploy:
+    name: Roll out to production
+    needs: [publish, scan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Gates on the `production` environment. Add required reviewers there to
+    # make this a manual approval step.
+    environment:
+      name: production
+      url: https://hexaconverter.app
+
+    steps:
+      - name: Pull and restart over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          # Fail on the first bad command rather than reporting success after a
+          # failed migration.
+          script_stops: true
+          script: |
+            set -euo pipefail
+            cd /srv/hexaconverter
+
+            export IMAGE='${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.publish.outputs.digest }}'
+            echo "Deploying $IMAGE"
+
+            docker compose -f docker-compose.prod.yml --env-file .env.production pull
+
+            # `migrate` runs to completion first; compose blocks the app
+            # services on it, so a failed migration aborts the rollout with the
+            # previous version still serving.
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --remove-orphans
+
+            docker image prune -f --filter 'until=168h'
+
+      - name: Wait for health
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            status=$(curl -fsS https://hexaconverter.app/api/health | sed -n 's/.*"status":"\([a-z]*\)".*/\1/p' || true)
+            echo "attempt $attempt: ${status:-unreachable}"
+            if [ "$status" = "ok" ]; then
+              echo "Healthy."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Never reported healthy — check 'docker compose logs web'."
+          exit 1
+
+  # --- Rollback --------------------------------------------------------------
+  # Only runs when the rollout or its health check failed. Returns the stack to
+  # the previously running image, which compose still has locally.
+  rollback:
+    name: Roll back
+    needs: deploy
+    if: failure()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Restore previous image
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /srv/hexaconverter
+            # `.env.production` pins IMAGE to the last known-good digest; the
+            # deploy step overrode it only for its own shell.
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+            echo 'Rolled back. Schema migrations are NOT reverted — see docs/DEPLOYMENT.md.'

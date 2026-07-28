@@ -1,0 +1,161 @@
+# Production stack.
+#
+# Differs from `docker-compose.yml` in three ways that matter:
+#
+#   1. No secrets in this file. Everything comes from `.env.production`, which
+#      is git-ignored. A compose file with credentials in it ends up committed.
+#   2. The web tier and the conversion worker are separate services. They run
+#      the same image; only `WORKER_ENABLED` differs. Splitting them means a
+#      video encode cannot starve request handling, and the two scale apart.
+#   3. Postgres is absent by default. Managed Postgres with automated backups
+#      and point-in-time recovery is the right answer for production data; the
+#      commented service below exists for single-box deployments that accept
+#      owning that themselves.
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+#
+# Migrations run once, in their own service, before either app service starts.
+# Running them from both would race two `prisma migrate deploy` processes
+# against the same advisory lock.
+
+name: hexaconverter-prod
+
+x-app-image: &app-image
+  image: ${IMAGE:-ghcr.io/OWNER/hexaconverter:latest}
+
+x-app-env: &app-env
+  env_file:
+    - .env.production
+  environment:
+    NODE_ENV: production
+
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: '10m'
+      max-file: '5'
+
+services:
+  # --- Schema migration ------------------------------------------------------
+  # Runs to completion, then exits. Both app services wait for success, so a
+  # failed migration stops the deploy instead of starting code against an old
+  # schema.
+  migrate:
+    <<: [*app-image, *app-env, *logging]
+    restart: 'no'
+    command: ['./node_modules/.bin/prisma', 'migrate', 'deploy']
+
+  # --- Web tier --------------------------------------------------------------
+  web:
+    <<: [*app-image, *app-env, *logging]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      # Request handling only. Conversions belong to the worker service, which
+      # is why this instance can be restarted during a deploy without killing
+      # an encode halfway through.
+      WORKER_ENABLED: 'false'
+    ports:
+      - '127.0.0.1:3000:3000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  # --- Conversion worker -----------------------------------------------------
+  worker:
+    <<: [*app-image, *app-env, *logging]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      WORKER_ENABLED: 'true'
+      # Per replica. Total parallel encodes is this times the replica count;
+      # ffmpeg and LibreOffice are CPU-bound, so keep the product at or below
+      # the host's core count.
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+    # No published port: the worker serves no traffic. It claims jobs from
+    # Postgres with `FOR UPDATE SKIP LOCKED`, so replicas never collide and
+    # this can be scaled with `--scale worker=N`.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          # LibreOffice and ffmpeg are the memory ceiling here, not Node.
+          memory: 3g
+
+  # --- Retention and queue sweeps -------------------------------------------
+  # `WORKER_ENABLED=true` already drives the queue. This exists for the
+  # retention pass, which nothing else triggers: without it, expired files are
+  # never deleted and the privacy policy stops being true.
+  cron:
+    image: alpine:3.20
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    env_file:
+      - .env.production
+    <<: *logging
+    command: >
+      /bin/sh -c "
+      apk add --no-cache curl >/dev/null &&
+      while true; do
+        sleep 3600;
+        curl -fsS -X POST http://web:3000/api/cron/cleanup
+          -H \"Authorization: Bearer $$CRON_SECRET\" >/dev/null
+          || echo 'cleanup sweep failed';
+      done
+      "
+
+# --- Self-hosted Postgres (opt-in) ------------------------------------------
+# Uncomment this and point DATABASE_URL at `postgres:5432` only if you are
+# prepared to own backups yourself. See docs/BACKUP.md before you do.
+#
+#   postgres:
+#     image: postgres:16-alpine
+#     restart: unless-stopped
+#     env_file: [.env.production]
+#     environment:
+#       POSTGRES_USER: ${POSTGRES_USER}
+#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#       POSTGRES_DB: ${POSTGRES_DB}
+#     volumes:
+#       - postgres-data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER}']
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#
+# volumes:
+#   postgres-data:

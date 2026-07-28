@@ -1,0 +1,652 @@
+// HexaConverter — data model
+// Provider: PostgreSQL 14+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+
+  // Runtime connections go through a transaction-mode pooler. Prisma opens a
+  // connection per query here, which is what the pooler is for.
+  url = env("DATABASE_URL")
+
+  // Migrations bypass it. DDL and advisory locks need one stable session for
+  // the whole run, and a transaction pooler hands each statement whichever
+  // backend is free. Falls back to `url` when unset, so a plain unpooled
+  // Postgres needs no extra configuration.
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Authentication (NextAuth core models + application fields)
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum PlanTier {
+  FREE
+  PRO
+  BUSINESS
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          UserRole  @default(USER)
+  plan          PlanTier  @default(FREE)
+
+  /// Sessions authenticated before this instant are rejected. Bumped by a
+  /// password change, a password reset and an explicit "sign out everywhere",
+  /// which is what makes stateless JWT sessions revocable.
+  sessionsValidFrom DateTime @default(now())
+
+  // Rolling usage window, reset lazily by the quota check.
+  usageBytes       BigInt   @default(0)
+  usageJobs        Int      @default(0)
+  usagePeriodStart DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  jobs          ConversionJob[]
+  uploads       UploadSession[]
+  apiKeys       ApiKey[]
+  favorites     FavoriteRoute[]
+  notifications Notification[]
+  authTokens    AuthToken[]
+  subscription  Subscription?
+  payments      Payment[]
+  files         File[]
+  history       HistoryEntry[]
+
+  @@index([plan])
+}
+
+enum AuthTokenType {
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+}
+
+/// A single-use, expiring secret emailed to a user.
+///
+/// Only a keyed digest of the secret is stored, so a database disclosure does
+/// not hand an attacker working reset links. Consumed tokens are kept, not
+/// deleted, so a replayed link can be recognised and refused rather than
+/// looking merely unknown.
+model AuthToken {
+  id     String        @id @default(cuid())
+  userId String
+  type   AuthTokenType
+
+  /// HMAC-SHA256 of the emailed secret. The plaintext exists only in the mail.
+  tokenHash String @unique
+
+  expiresAt  DateTime
+  consumedAt DateTime?
+  ipHash     String?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Conversion pipeline
+// ---------------------------------------------------------------------------
+
+enum JobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+/// Document operations that are not a plain format-to-format conversion.
+enum DocumentOperation {
+  MERGE
+  SPLIT
+  EXTRACT_PAGES
+  ROTATE
+  COMPRESS
+}
+
+/// Archive operations that are not a plain format-to-format conversion.
+enum ArchiveOperation {
+  EXTRACT
+  ARCHIVE
+  PROTECT
+}
+
+enum FileCategory {
+  IMAGE
+  DOCUMENT
+  AUDIO
+  VIDEO
+  ARCHIVE
+}
+
+/// A resumable, chunked upload in progress.
+///
+/// Large files are sent in pieces so a dropped connection costs one chunk
+/// rather than the whole transfer. Each chunk is stored as its own object and
+/// the pieces are streamed together when the client says the upload is done.
+model UploadSession {
+  id String @id @default(cuid())
+
+  // Same ownership rule as a conversion: exactly one of these identifies the
+  // owner, so a session id leaked to someone else is still unusable.
+  userId  String?
+  guestId String?
+
+  filename     String
+  sourceFormat String
+  mime         String
+  /// Total byte length the client declared up front.
+  declaredSize BigInt
+  /// Bytes actually stored so far, summed across received chunks.
+  receivedSize BigInt @default(0)
+
+  chunkSize      Int
+  totalChunks    Int
+  /// Indices already stored. Re-sending a chunk is idempotent.
+  receivedChunks Int[] @default([])
+
+  /// Prefix the chunk objects live under, e.g. `uploads/<id>`.
+  storagePrefix String
+
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  /// Abandoned sessions are swept after this instant.
+  expiresAt DateTime
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([guestId])
+  @@index([expiresAt])
+}
+
+model ConversionJob {
+  id String @id @default(cuid())
+
+  // Exactly one of userId / guestId identifies the owner. Guests are tracked
+  // with an opaque, http-only cookie so anonymous conversions stay private.
+  userId  String?
+  guestId String?
+
+  status   JobStatus    @default(QUEUED)
+  category FileCategory
+
+  sourceFormat String
+  targetFormat String
+  // Validated, engine-specific options (quality, resolution, bitrate, ...).
+  options      Json?
+
+  /// Set for toolkit jobs (merge, split, ...); null for format conversions.
+  operation DocumentOperation?
+
+  /// Set for archive-toolkit jobs (extract, archive, protect).
+  archiveOperation ArchiveOperation?
+
+  progress Int     @default(0)
+  error    String? @db.Text
+  attempts Int     @default(0)
+
+  inputKey  String
+  inputName String
+  inputSize BigInt
+  inputMime String
+
+  /// Additional inputs for operations that take several files, such as merge.
+  /// The primary input above is always the first in order.
+  extraInputKeys  String[] @default([])
+  extraInputNames String[] @default([])
+
+  outputKey    String?
+  outputName   String?
+  outputSize   BigInt?
+  /// Engine-reported summary of what the job produced, shown to the user.
+  outputDetail String?
+  outputMime   String?
+
+  // Optimistic worker lease — prevents two instances claiming the same job.
+  lockedAt DateTime?
+  lockedBy String?
+
+  durationMs Int?
+  ipHash     String?
+
+  expiresAt  DateTime
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user  User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files File[]
+
+  @@index([userId, createdAt])
+  @@index([guestId, createdAt])
+  @@index([status, createdAt])
+  @@index([expiresAt])
+}
+
+enum FileRole {
+  INPUT
+  OUTPUT
+  /// Produced during processing and discarded before the job settles.
+  INTERMEDIATE
+}
+
+enum FileStatus {
+  /// Row exists, bytes are still being written.
+  PENDING
+  STORED
+  /// Held back by the malware scanner; never served.
+  QUARANTINED
+  /// Bytes removed by retention; the row survives so history stays readable.
+  DELETED
+}
+
+/// A single stored object.
+///
+/// One row per object in the storage driver, which makes `storageKey` the
+/// natural key and gives retention a single place to look rather than a union
+/// over every table that happens to hold a key. `ConversionJob` still carries
+/// its own denormalised input/output columns; this table is the canonical
+/// record and the parallel `extraInput*` arrays are what it is here to retire —
+/// two arrays kept in step by convention will eventually fall out of step.
+model File {
+  id String @id @default(cuid())
+
+  // Same ownership rule as a conversion: exactly one of these identifies the
+  // owner, so a key leaked to someone else is still unusable.
+  userId  String?
+  guestId String?
+
+  /// Key in the storage driver. Unique — one row per stored object.
+  storageKey String @unique
+
+  /// What the user called it. Never used to build a path.
+  originalName String
+  /// Sanitised, single-segment name safe for `Content-Disposition`.
+  storedName   String?
+
+  mime      String
+  format    String
+  sizeBytes BigInt
+
+  /// SHA-256 of the content. Enables integrity checks and, later, dedupe.
+  checksum String?
+
+  role   FileRole
+  status FileStatus @default(PENDING)
+
+  /// The conversion this object belongs to; null for a bare upload.
+  jobId    String?
+  /// Order within a multi-input operation such as merge. The primary input is 0.
+  position Int     @default(0)
+
+  scannedAt  DateTime?
+  scanResult String?
+
+  expiresAt DateTime
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  ConversionJob? @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([guestId, createdAt])
+  /// Supports the retention sweep: due rows, filtered to those not yet deleted.
+  @@index([expiresAt, status])
+  /// Fetching a job's inputs in order is the hot read.
+  @@index([jobId, role, position])
+  @@index([checksum])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  // Only the SHA-256 hash is stored; the plaintext key is shown once.
+  hashedKey  String    @unique
+  prefix     String
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Billing
+// ---------------------------------------------------------------------------
+
+/// Mirrors the states a payment processor reports, so a webhook maps to a
+/// status without the application inventing a translation of its own.
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  /// Payment failed; access usually continues through a grace period.
+  PAST_DUE
+  CANCELED
+  /// Awaiting a first payment or a 3-D Secure confirmation.
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  UNPAID
+  PAUSED
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+/// What a user is entitled to, and until when.
+///
+/// `User.plan` stays as a denormalised copy of `tier` because every quota check
+/// reads it on the request path and must not join to find it. This table is the
+/// source of truth; the copy is refreshed whenever a row here changes.
+///
+/// One row per user, updated in place across upgrades and cancellations —
+/// the billing *record* is the `Payment` ledger, so this table does not also
+/// need to be an event log.
+model Subscription {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  tier     PlanTier
+  status   SubscriptionStatus @default(ACTIVE)
+  interval BillingInterval    @default(MONTHLY)
+
+  /// Price actually agreed, which may not be today's list price.
+  priceCents Int?
+  currency   String @default("USD") @db.Char(3)
+
+  // Processor references. All nullable so a plan granted by hand — support
+  // credit, an enterprise contract signed offline — is representable without
+  // inventing fake billing identifiers.
+  provider               String?
+  providerCustomerId     String?
+  providerSubscriptionId String? @unique
+  providerPriceId        String?
+
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+
+  /// Set when the user has cancelled but paid through the current period.
+  cancelAtPeriodEnd Boolean   @default(false)
+  canceledAt        DateTime?
+  trialEndsAt       DateTime?
+  /// When access actually stopped, as opposed to when cancellation was asked for.
+  endedAt           DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  /// Finds subscriptions to expire or retry.
+  @@index([status, currentPeriodEnd])
+  @@index([providerCustomerId])
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  DISPUTED
+}
+
+/// An append-only ledger of money movements.
+///
+/// Amounts are integer minor units, never floating point: a float cannot hold
+/// 0.1 exactly, and a rounding error in a ledger is a defect that compounds
+/// silently.
+///
+/// `userId` is nullable and detaches rather than cascades. Deleting an account
+/// must not erase financial records that tax and chargeback rules require be
+/// kept, so erasure removes the link to the person while the amounts survive.
+model Payment {
+  id             String  @id @default(cuid())
+  userId         String?
+  subscriptionId String?
+
+  /// Charged amount in minor units — 900 is $9.00.
+  amountCents Int
+  /// ISO 4217, uppercase.
+  currency    String        @default("USD") @db.Char(3)
+  status      PaymentStatus @default(PENDING)
+  description String?
+
+  /// Refunded so far, in minor units. Never exceeds `amountCents`.
+  refundedCents Int @default(0)
+
+  provider          String
+  /// The processor's own id. Unique, so a webhook delivered twice — which
+  /// every processor does eventually — records one payment rather than two.
+  providerPaymentId String  @unique
+  providerInvoiceId String?
+
+  receiptUrl    String?
+  /// Processor's decline reason, shown to the user as-is.
+  failureReason String?
+
+  /// Service window this payment covers, for invoice reconciliation.
+  periodStart DateTime?
+  periodEnd   DateTime?
+
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([subscriptionId, createdAt])
+  @@index([status, createdAt])
+  @@index([providerInvoiceId])
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
+
+/// A conversion route the user has pinned for one-click access.
+model FavoriteRoute {
+  id           String    @id @default(cuid())
+  userId       String
+  sourceFormat String
+  targetFormat String
+  /// Times the user has launched a conversion from this shortcut.
+  useCount     Int       @default(0)
+  lastUsedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceFormat, targetFormat])
+  @@index([userId, lastUsedAt])
+}
+
+enum HistoryAction {
+  ACCOUNT_CREATED
+  CONVERSION_CREATED
+  CONVERSION_COMPLETED
+  CONVERSION_FAILED
+  FILE_DOWNLOADED
+  FILE_EXPIRED
+  FAVORITE_ADDED
+  PLAN_CHANGED
+  PAYMENT_SUCCEEDED
+  PAYMENT_FAILED
+  PASSWORD_CHANGED
+  EMAIL_VERIFIED
+  SESSIONS_REVOKED
+}
+
+/// The user's own activity timeline.
+///
+/// Three tables record that things happened, and they are not redundant:
+///
+///   `ConversionJob` — the work itself: status, options, engine, timings.
+///   `HistoryEntry`  — what the *user* did, phrased for the user and shown
+///                     back to them.
+///   `AuditLog`      — security evidence for operators: actor, IP digest,
+///                     pruned after a year, never surfaced in the product.
+///
+/// Splitting them means a privacy request that clears someone's visible history
+/// does not also destroy the security trail, and the security trail does not
+/// have to be written in language fit for an end user.
+model HistoryEntry {
+  id     String        @id @default(cuid())
+  userId String
+  action HistoryAction
+
+  /// Complete sentence, already fit to render. Written at capture time so a
+  /// later rename of a file or plan cannot rewrite recorded history.
+  summary String
+
+  /// Loose reference to the subject — deliberately not a foreign key, because
+  /// the entry must outlive the row it describes.
+  entityType String?
+  entityId   String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, action, createdAt])
+  /// Supports pruning by age, the way `AuditLog` is already pruned.
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  CONVERSION_COMPLETED
+  CONVERSION_FAILED
+  FILE_EXPIRING
+  QUOTA_WARNING
+  SYSTEM
+}
+
+model Notification {
+  id     String           @id @default(cuid())
+  userId String
+  type   NotificationType
+  title  String
+  body   String           @db.Text
+  /// Deep link into the app, e.g. a conversion in the history.
+  href   String?
+  /// Set when the user has seen it; null means unread.
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+// ---------------------------------------------------------------------------
+// Operations
+// ---------------------------------------------------------------------------
+
+enum ContactStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+}
+
+model ContactMessage {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String        @db.Text
+  status    ContactStatus @default(NEW)
+  ipHash    String?
+  createdAt DateTime      @default(now())
+
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  target    String?
+  metadata  Json?
+  ipHash    String?
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+}

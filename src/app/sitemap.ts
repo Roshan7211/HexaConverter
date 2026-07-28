@@ -1,0 +1,116 @@
+import type { MetadataRoute } from 'next';
+
+import { PUBLISHED_ROUTES, routeSlug } from '@/services/conversion/registry';
+import { ARCHIVE_OPERATION_SPECS } from '@/types/archives';
+import { PDF_OPERATION_SPECS } from '@/types/documents';
+import { CATEGORIES } from '@/types/conversion';
+import { SITE } from '@/lib/seo';
+
+/**
+ * Sitemap covering every indexable route, including one entry per conversion
+ * landing page. Authenticated and API routes are deliberately excluded.
+ */
+
+export const revalidate = 86400;
+
+export default function sitemap(): MetadataRoute.Sitemap {
+  const now = new Date();
+  const url = (path: string) => new URL(path, SITE.url).toString();
+
+  const staticRoutes: MetadataRoute.Sitemap = [
+    {
+      url: url('/'),
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 1,
+    },
+    {
+      url: url('/features'),
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: url('/faq'),
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: url('/about'),
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.4,
+    },
+    {
+      url: url('/contact'),
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.4,
+    },
+    {
+      url: url('/sign-up'),
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.5,
+    },
+    {
+      url: url('/legal/privacy'),
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: url('/legal/terms'),
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: url('/legal/cookies'),
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+  ];
+
+  const categoryRoutes: MetadataRoute.Sitemap = CATEGORIES.map((category) => ({
+    url: url(`/convert/${category}`),
+    lastModified: now,
+    changeFrequency: 'weekly',
+    priority: 0.9,
+  }));
+
+  const toolRoutes: MetadataRoute.Sitemap = PUBLISHED_ROUTES.map((route) => ({
+    url: url(`/tools/${routeSlug(route)}`),
+    lastModified: now,
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  }));
+
+  const pdfToolRoutes: MetadataRoute.Sitemap = Object.values(
+    PDF_OPERATION_SPECS,
+  ).map((spec) => ({
+    url: url(`/tools/pdf/${spec.slug}`),
+    lastModified: now,
+    changeFrequency: 'monthly',
+    priority: 0.8,
+  }));
+
+  const archiveToolRoutes: MetadataRoute.Sitemap = Object.values(
+    ARCHIVE_OPERATION_SPECS,
+  ).map((spec) => ({
+    url: url(`/tools/archive/${spec.slug}`),
+    lastModified: now,
+    changeFrequency: 'monthly',
+    priority: 0.8,
+  }));
+
+  return [
+    ...staticRoutes,
+    ...categoryRoutes,
+    ...pdfToolRoutes,
+    ...archiveToolRoutes,
+    ...toolRoutes,
+  ];
+}

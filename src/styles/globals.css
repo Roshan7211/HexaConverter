@@ -1,0 +1,531 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens.
+ *
+ * The palette is taken from the logo: a vivid orange hexagon with an amber-to
+ * deep-orange gradient. Everything else is a warm neutral ramp. Both themes are authored explicitly so contrast ratios hold: body text
+ * meets WCAG AA (>= 4.5:1) and large text/UI meets AA (>= 3:1) in each mode.
+ */
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 24 10% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 24 10% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 10% 10%;
+
+    /*
+     * Brand.
+     *
+     * `--brand` is the logo's vivid orange, sampled from the hexagon
+     * (#FD6E08 / amber #FDA50D at the top of its gradient). At 2.83:1 on white
+     * it can carry marks, gradients and large fills but NOT text, so a second
+     * token exists:
+     *
+     * `--primary` is the same hue darkened to 38% lightness (#BA4608, 5.29:1),
+     * which passes AA both as link text on white and as a button ground under
+     * white text. Interactive colour and decorative colour are therefore not
+     * the same value — the logo stays vivid, the UI stays legible.
+     */
+    --brand: 25 98% 51%;
+    --brand-amber: 38 98% 52%;
+    --brand-deep: 16 98% 50%;
+
+    --primary: 21 92% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 30 8% 96%;
+    --secondary-foreground: 24 10% 16%;
+
+    --muted: 30 8% 96%;
+    --muted-foreground: 24 6% 42%;
+
+    --accent: 30 95% 95%;
+    --accent-foreground: 21 92% 32%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 62% 32%;
+    --success-foreground: 0 0% 100%;
+
+    /* Yellower than the brand hue so a warning never reads as an accent;
+       always paired with an icon and a label, never colour alone. */
+    --warning: 45 100% 33%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 24 10% 90%;
+    --input: 24 10% 87%;
+    --ring: 25 98% 51%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Warm-neutral dark, tinted toward the brand rather than blue-grey. */
+    --background: 24 12% 5%;
+    --foreground: 30 12% 96%;
+
+    --card: 24 10% 9%;
+    --card-foreground: 30 12% 96%;
+
+    --popover: 24 10% 9%;
+    --popover-foreground: 30 12% 96%;
+
+    --brand: 28 98% 56%;
+    --brand-amber: 40 98% 58%;
+    --brand-deep: 18 96% 54%;
+
+    /* On a dark ground the vivid orange clears AA on its own (7.8:1), so
+       interactive and brand colour converge here. */
+    --primary: 25 95% 58%;
+    --primary-foreground: 24 40% 8%;
+
+    --secondary: 24 8% 15%;
+    --secondary-foreground: 30 10% 92%;
+
+    --muted: 24 8% 15%;
+    --muted-foreground: 28 8% 66%;
+
+    --accent: 24 30% 18%;
+    --accent-foreground: 30 96% 76%;
+
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 52% 52%;
+    --success-foreground: 152 40% 10%;
+
+    --warning: 45 94% 58%;
+    --warning-foreground: 45 60% 10%;
+
+    --border: 24 8% 19%;
+    --input: 24 8% 23%;
+    --ring: 28 98% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth antialiased;
+    /* Prevent layout shift when a dialog locks scrolling. */
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    /* Contextual alternates and ligatures on; tabular figures where numbers
+       are compared (stat rows, pricing) are opted in per component. */
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1,
+      'ss01' 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Display headings: tighter tracking as size increases, which keeps large
+     type from looking loose and small type from looking cramped. */
+  h1,
+  h2,
+  h3 {
+    @apply text-balance;
+    font-feature-settings: 'ss01' 1;
+  }
+
+  h1 {
+    letter-spacing: -0.033em;
+  }
+
+  h2 {
+    letter-spacing: -0.025em;
+  }
+
+  h3 {
+    letter-spacing: -0.018em;
+  }
+
+  /* Visible, consistent focus for keyboard users only. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  ::selection {
+    @apply bg-primary/20;
+  }
+
+  /* Respect a user's reduced-motion preference across the whole app. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Skip link: hidden until focused. */
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground;
+  }
+
+  .surface-gradient {
+    background-image:
+      radial-gradient(
+        60rem 30rem at 50% -10%,
+        hsl(var(--brand) / 0.13),
+        transparent 70%
+      ),
+      radial-gradient(
+        40rem 24rem at 10% 10%,
+        hsl(var(--brand-amber) / 0.08),
+        transparent 70%
+      );
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /*
+   * Glassmorphism.
+   *
+   * Translucency is applied to the *surface* only — never to text — and the
+   * fallback (no `backdrop-filter` support) is an opaque card, so contrast
+   * never depends on the effect rendering. Light mode uses a brighter tint
+   * with a white top-edge highlight; dark mode a low-luminance tint with a
+   * subtle inner glow.
+   */
+  .glass {
+    /*
+     * Token-based, not white-on-white. The earlier version used
+     * `bg-white/60` with a `border-white/40` edge, which is invisible on the
+     * light theme's white page background — the Features, Pricing and Popular
+     * Tools cards had no discernible edge at all. Glass needs something behind
+     * it; where there is nothing, the border and shadow have to carry the
+     * surface.
+     */
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--card) / 0.72);
+    box-shadow:
+      0 1px 2px hsl(240 6% 10% / 0.04),
+      0 8px 24px -12px hsl(240 6% 10% / 0.12);
+    /* Safari only dropped the prefix in 18; macOS 13 tops out at Safari 17,
+       so the prefixed form is not optional. */
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(16px) saturate(160%);
+  }
+
+  .dark .glass {
+    /* On dark surfaces a white tint reads as glass, and the border can be
+       lighter than the surface rather than darker. */
+    border-color: hsl(0 0% 100% / 0.1);
+    background-color: hsl(0 0% 100% / 0.045);
+    box-shadow:
+      0 1px 2px hsl(0 0% 0% / 0.3),
+      0 8px 24px -12px hsl(0 0% 0% / 0.5);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass {
+      background-color: hsl(var(--card));
+    }
+  }
+
+  /* A brighter panel for the hero, where content sits directly on gradient. */
+  .glass-panel {
+    @apply glass rounded-2xl;
+    background-image: linear-gradient(
+      to bottom right,
+      hsl(0 0% 100% / 0.5),
+      hsl(0 0% 100% / 0.15)
+    );
+  }
+
+  .dark .glass-panel {
+    background-image: linear-gradient(
+      to bottom right,
+      hsl(0 0% 100% / 0.07),
+      hsl(0 0% 100% / 0.02)
+    );
+  }
+
+  /* Sticky navigation surface. */
+  .glass-nav {
+    @apply border-b border-border/60 bg-background/70;
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    backdrop-filter: blur(14px) saturate(180%);
+  }
+
+  /* Gradient hairline border, drawn without an extra wrapper element. */
+  .gradient-ring {
+    position: relative;
+  }
+
+  .gradient-ring::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      140deg,
+      hsl(var(--brand-amber) / 0.6),
+      hsl(var(--brand) / 0) 42%,
+      hsl(var(--brand-deep) / 0.3)
+    );
+    /* Punches out the centre so only the 1px edge paints. */
+    /* Autoprefixer adds the -webkit- forms, including
+       `-webkit-mask-composite: xor`, which is what Safari needs. */
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Ambient colour field behind the hero and CTA. */
+  .aurora {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .aurora::before,
+  .aurora::after {
+    content: '';
+    position: absolute;
+    width: 45rem;
+    height: 45rem;
+    border-radius: 9999px;
+    filter: blur(90px);
+    opacity: 0.5;
+    will-change: transform;
+  }
+
+  .aurora::before {
+    top: -22rem;
+    left: 50%;
+    margin-left: -22rem;
+    background: radial-gradient(
+      circle,
+      hsl(var(--brand-amber) / 0.5),
+      transparent 65%
+    );
+    animation: aurora-drift 22s ease-in-out infinite;
+  }
+
+  .aurora::after {
+    top: -14rem;
+    right: -12rem;
+    background: radial-gradient(
+      circle,
+      hsl(var(--brand-deep) / 0.38),
+      transparent 65%
+    );
+    animation: aurora-drift 28s ease-in-out infinite reverse;
+  }
+
+  .dark .aurora::before,
+  .dark .aurora::after {
+    opacity: 0.35;
+  }
+
+  /*
+   * Data-visualisation palette.
+   *
+   * A single-hue ordinal ramp for magnitude — more is darker in light mode,
+   * more is lighter in dark mode, which is the correct direction against each
+   * surface. Re-derived in the brand hue and re-validated with the palette
+   * validator (monotone lightness, >=0.06 adjacent lightness gaps, single hue,
+   * and the step nearest the surface clearing 2:1 contrast against it).
+   *
+   * Orange is intrinsically light, so this ramp cannot start as pale as a
+   * cool-hue one would — #fb8a3c is the lightest step that still separates
+   * from a white card.
+   *
+   *   light on #ffffff  #fb8a3c -> #5f2905   (light end 2.39:1)
+   *   dark  on #17130f  #d2650d -> #fee0c2   (dark  end 4.93:1)
+   */
+  .viz {
+    --viz-1: #fb8a3c;
+    --viz-2: #e86f10;
+    --viz-3: #bd5309;
+    --viz-4: #8f3e07;
+    --viz-5: #5f2905;
+    --viz-line: #c2500a;
+    --viz-area-from: hsl(var(--brand) / 0.26);
+    --viz-area-to: hsl(var(--brand) / 0);
+    --viz-grid: hsl(24 10% 90%);
+    --viz-track: hsl(30 8% 94%);
+  }
+
+  .dark .viz {
+    --viz-1: #d2650d;
+    --viz-2: #f57f28;
+    --viz-3: #f9a05a;
+    --viz-4: #fcc490;
+    --viz-5: #fee0c2;
+    --viz-line: #f9a05a;
+    --viz-area-from: hsl(var(--brand) / 0.3);
+    --viz-area-to: hsl(var(--brand) / 0);
+    --viz-grid: hsl(24 8% 20%);
+    --viz-track: hsl(24 8% 16%);
+  }
+
+  /* Numeric columns that should align vertically. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * Scroll-driven reveal.
+   *
+   * Content is visible by default and only animates where the browser supports
+   * scroll timelines, so there is no state in which text is unreachable. The
+   * whole block is inside a reduced-motion guard.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .reveal {
+        animation: reveal-fade-in linear both;
+        animation-timeline: view();
+        /*
+         * Entry-relative on both ends. An earlier range ended at `cover 26%`,
+         * an offset the page cannot always reach for elements near the bottom
+         * of the document — those stayed frozen part-way through the fade,
+         * permanently semi-transparent. `entry` completes while the element is
+         * still scrolling into view, so it is always reachable.
+         */
+        animation-range: entry 0% entry 55%;
+      }
+
+      .reveal-up {
+        animation-name: reveal-fade-in, reveal-from-bottom;
+      }
+
+      .reveal-down {
+        animation-name: reveal-fade-in, reveal-from-top;
+      }
+
+      .reveal-left {
+        animation-name: reveal-fade-in, reveal-from-right;
+      }
+
+      .reveal-right {
+        animation-name: reveal-fade-in, reveal-from-left;
+      }
+
+      .reveal-fade {
+        animation-name: reveal-fade-in;
+      }
+    }
+  }
+}
+
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-4rem, 2rem, 0) scale(1.12);
+  }
+}
+
+@keyframes reveal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes reveal-from-bottom {
+  from {
+    transform: translateY(1.75rem);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes reveal-from-top {
+  from {
+    transform: translateY(-1.75rem);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes reveal-from-left {
+  from {
+    transform: translateX(-1.75rem);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes reveal-from-right {
+  from {
+    transform: translateX(1.75rem);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* The track renders its content twice; -50% loops seamlessly. */
+    transform: translateX(-50%);
+  }
+}
+
+@layer utilities {
+  .animate-marquee {
+    animation: marquee var(--marquee-duration, 40s) linear infinite;
+  }
+
+  /* Pauses ambient motion on hover so users can read a moving row. */
+  .pause-on-hover:hover .animate-marquee {
+    animation-play-state: paused;
+  }
+
+  /* Fades the edges of a scrolling row of format chips. */
+  .mask-fade-x {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 2rem,
+      black calc(100% - 2rem),
+      transparent
+    );
+  }
+}

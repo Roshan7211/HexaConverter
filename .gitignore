@@ -1,0 +1,46 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# builds
+.next
+out
+build
+dist
+next-env.d.ts
+*.tsbuildinfo
+
+# environment
+# Ignore every .env variant, then re-admit the committed templates. Listing
+# files individually is how `.env.production` — which holds the real production
+# secrets and is read by docker-compose.prod.yml — ends up committed because
+# nobody added it.
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# local file storage (uploads + conversion output)
+/storage
+/tmp
+
+# testing
+coverage
+test-results
+playwright-report
+.playwright
+
+# logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# editors / os
+.DS_Store
+.idea
+*.swp
+
+# prisma
+prisma/*.db
+prisma/*.db-journal
