@@ -107,7 +107,7 @@ describe('format catalogue', () => {
     expect(findRoute('mp4', 'mp3')?.engine).toBe('media');
     expect(findRoute('docx', 'pdf')?.engine).toBe('office');
     expect(findRoute('docx', 'pdf')?.requires).toBe('libreoffice');
-    expect(findRoute('pdf', 'jpg')?.requires).toBe('poppler');
+    expect(findRoute('pdf', 'jpg')?.engine).toBe('pdf-render');
     expect(findRoute('csv', 'xlsx')?.engine).toBe('spreadsheet');
     expect(findRoute('zip', 'tgz')?.engine).toBe('archive');
     expect(findRoute('png', 'pdf')?.engine).toBe('document');
@@ -117,6 +117,16 @@ describe('format catalogue', () => {
     // txt to pdf must not be handed to LibreOffice: pdf-lib handles it locally.
     expect(findRoute('txt', 'pdf')?.requires).toBeUndefined();
     expect(findRoute('csv', 'xlsx')?.requires).toBeUndefined();
+  });
+
+  it('declares no hard requirement for PDF rasterisation', () => {
+    // The engine uses Poppler when the host has it and falls back to PDF.js
+    // otherwise, so these routes are always satisfiable. Declaring `poppler`
+    // here would hide them on every host that cannot install system packages —
+    // which is precisely where the fallback is needed.
+    for (const target of ['jpg', 'png', 'tiff', 'txt'] as const) {
+      expect(findRoute('pdf', target)?.requires).toBeUndefined();
+    }
   });
 
   it('exposes at least one target for every accepted input extension', () => {

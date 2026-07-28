@@ -89,6 +89,10 @@ const nextConfig = {
     // PDF.js resolves its worker relative to its own module URL, which webpack
     // rewrites — it has to be required natively at runtime.
     'pdfjs-dist',
+    // Prebuilt .node binary, selected per platform at require time. Bundling it
+    // breaks that lookup, and it is what lets PDF rasterisation run on hosts
+    // without Poppler.
+    '@napi-rs/canvas',
     'heic-decode',
     'docx',
     // 7zip-bin resolves its binary relative to its own path, and node-unrar-js
@@ -101,6 +105,13 @@ const nextConfig = {
 
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
+  },
+
+  // The tracer follows `require`/`import`, so it finds pdfjs but not the font
+  // files it loads by URL at run time. Without these, rasterisation on a
+  // serverless host silently renders pages with every glyph missing.
+  outputFileTracingIncludes: {
+    '/api/**': ['./node_modules/pdfjs-dist/standard_fonts/**'],
   },
 
   images: {

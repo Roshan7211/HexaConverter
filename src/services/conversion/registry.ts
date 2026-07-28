@@ -520,14 +520,17 @@ function build(): ConversionRoute[] {
     for (const to of SLIDE_TARGETS) add(from, to, 'office', 'libreoffice');
   }
 
-  // PDF rasterisation and text extraction via Poppler.
+  // PDF rasterisation and text extraction. No requirement is declared: the
+  // engine uses Poppler when the host has it and falls back to PDF.js with a
+  // prebuilt canvas when it does not, so the route is always satisfiable.
+  // Declaring `poppler` here would hide these routes on every deployment that
+  // cannot install system packages, which is exactly where the fallback runs.
   for (const to of ['jpg', 'png', 'tiff'] as const) {
-    add('pdf', to, 'pdf-render', 'poppler');
+    add('pdf', to, 'pdf-render');
   }
-  add('pdf', 'txt', 'pdf-render', 'poppler');
+  add('pdf', 'txt', 'pdf-render');
 
-  // PDF to Word. Text extraction runs in pure JavaScript (PDF.js), so unlike
-  // the rasterising routes above this needs no external binary.
+  // PDF to Word, also pure JavaScript.
   add('pdf', 'docx', 'pdf-text');
 
   // Audio transcoding.

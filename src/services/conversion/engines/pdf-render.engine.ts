@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
-import { mkdir, readdir, rename, rm } from 'node:fs/promises';
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -11,6 +18,11 @@ import {
   requirementPath,
   runCommand,
 } from '@/services/conversion/binaries';
+import {
+  extractPdfText,
+  rasterisePdf,
+  type RasterFormat,
+} from '@/services/documents/pdf-raster.service';
 import { getFormat } from '@/services/conversion/registry';
 import {
   ConversionError,
@@ -20,7 +32,16 @@ import {
 } from '@/types/conversion';
 
 /**
- * PDF rasterisation and text extraction via Poppler (`pdftoppm`, `pdftotext`).
+ * PDF rasterisation and text extraction.
+ *
+ * Two implementations, chosen at run time. Poppler (`pdftoppm`, `pdftotext`) is
+ * preferred where it exists: it is faster on large documents and handles CMYK
+ * better. Where it does not — serverless, or any host without system packages —
+ * the same work is done in-process with `pdfjs-dist` and a prebuilt canvas.
+ *
+ * The fallback is what makes this route work at all on a platform that cannot
+ * install binaries. Both paths produce identical output shapes, so nothing
+ * downstream needs to know which ran.
  *
  * A PDF with more than one page produces one image per page, which are
  * delivered as a single ZIP archive — the job's output MIME type reflects that
@@ -58,18 +79,107 @@ export const pdfRenderEngine: ConversionEngine = {
   id: 'pdf-render',
 
   async run(context: ConversionContext): Promise<ConversionOutcome> {
-    if (!(await requirementPath('poppler'))) {
-      throw new ConversionError(
-        'PDF rendering is not available on this server. Contact support if this persists.',
-        { retryable: true },
-      );
+    const hasPoppler = Boolean(await requirementPath('poppler'));
+
+    if (context.targetFormat === 'txt') {
+      return hasPoppler ? extractText(context) : extractTextInProcess(context);
     }
 
-    return context.targetFormat === 'txt'
-      ? extractText(context)
-      : renderPages(context);
+    return hasPoppler ? renderPages(context) : renderPagesInProcess(context);
   },
 };
+
+// --- In-process fallback ----------------------------------------------------
+
+/**
+ * Renders with `pdfjs-dist` when Poppler is absent.
+ *
+ * Deliberately mirrors `renderPages` rather than sharing its body: that one is
+ * organised around a child process writing numbered files into a directory,
+ * this one around buffers in memory. Forcing both through one abstraction would
+ * obscure each.
+ */
+async function renderPagesInProcess(
+  context: ConversionContext,
+): Promise<ConversionOutcome> {
+  const target = getFormat(context.targetFormat);
+  const format = context.targetFormat as RasterFormat;
+
+  if (!target || !FORMAT_FLAG[context.targetFormat]) {
+    throw new ConversionError(
+      `Unsupported target format: ${context.targetFormat}`,
+    );
+  }
+
+  context.onProgress(15);
+
+  const pages = await rasterisePdf(
+    await readFile(context.inputPath),
+    format,
+    {
+      dpi: context.options.dpi,
+      pages: context.options.pages,
+      quality: context.options.quality,
+    },
+    (done, total) => {
+      // 15–85 spans the render; the remainder is encoding and packaging.
+      context.onProgress(15 + Math.round((done / total) * 70));
+    },
+  );
+
+  if (pages.length === 0) {
+    throw new ConversionError(
+      'No pages could be rendered. The PDF may be encrypted or contain no printable content.',
+    );
+  }
+
+  if (pages.length === 1) {
+    await writeFile(context.outputPath, pages[0]!.data);
+    context.onProgress(100);
+    return { outputPath: context.outputPath, mime: target.mime };
+  }
+
+  const workDir = path.join(tmpdir(), `hexa-pdfjs-${randomUUID()}`);
+  await mkdir(workDir, { recursive: true });
+
+  try {
+    const width = String(pages.at(-1)!.pageNumber).length;
+    const names: string[] = [];
+
+    for (const page of pages) {
+      // Zero-padded so a lexical sort in the archive matches page order.
+      const name = `page-${String(page.pageNumber).padStart(width, '0')}.${context.targetFormat}`;
+      await writeFile(path.join(workDir, name), page.data);
+      names.push(name);
+    }
+
+    await zipDirectory(workDir, context.outputPath, names);
+    context.onProgress(100);
+
+    return {
+      outputPath: context.outputPath,
+      mime: 'application/zip',
+      detail: `${pages.length} pages`,
+    };
+  } finally {
+    await rm(workDir, { recursive: true, force: true });
+  }
+}
+
+async function extractTextInProcess(
+  context: ConversionContext,
+): Promise<ConversionOutcome> {
+  context.onProgress(25);
+
+  const text = await extractPdfText(await readFile(context.inputPath), {
+    pages: context.options.pages,
+  });
+
+  await writeFile(context.outputPath, text, 'utf8');
+  context.onProgress(100);
+
+  return { outputPath: context.outputPath, mime: 'text/plain' };
+}
 
 async function extractText(
   context: ConversionContext,
