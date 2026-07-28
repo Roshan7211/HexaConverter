@@ -38,6 +38,9 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://hexa:hexa@localhost:5432/hexaconverter_test?schema=public
+      # Referenced by `directUrl` in schema.prisma. Prisma fails validation
+      # if it is unset, so it is required even for a direct connection.
+      DIRECT_URL: postgresql://hexa:hexa@localhost:5432/hexaconverter_test?schema=public
       NEXTAUTH_SECRET: ci-secret-value-that-is-long-enough-for-zod-1
       DOWNLOAD_URL_SECRET: ci-download-secret-value-long-enough-for-zod
       CRON_SECRET: ci-cron-secret-value
@@ -80,6 +83,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://build:build@localhost:5432/build
+      DIRECT_URL: postgresql://build:build@localhost:5432/build
       NEXTAUTH_SECRET: ci-secret-value-that-is-long-enough-for-zod-1
       DOWNLOAD_URL_SECRET: ci-download-secret-value-long-enough-for-zod
       CRON_SECRET: ci-cron-secret-value
@@ -123,6 +127,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://hexa:hexa@localhost:5432/hexaconverter_e2e?schema=public
+      DIRECT_URL: postgresql://hexa:hexa@localhost:5432/hexaconverter_e2e?schema=public
       NEXTAUTH_URL: http://localhost:3000
       NEXTAUTH_SECRET: ci-secret-value-that-is-long-enough-for-zod-1
       DOWNLOAD_URL_SECRET: ci-download-secret-value-long-enough-for-zod

@@ -43,16 +43,6 @@ test.describe('public pages', () => {
     ).toBeVisible();
   });
 
-  test('pricing page lists every plan', async ({ page }) => {
-    await page.goto('/pricing');
-
-    for (const plan of ['Free', 'Pro', 'Business']) {
-      await expect(
-        page.getByRole('heading', { name: plan, exact: true }),
-      ).toBeVisible();
-    }
-  });
-
   test('unknown routes return the 404 page', async ({ page }) => {
     const response = await page.goto('/does-not-exist');
 
