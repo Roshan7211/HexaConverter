@@ -257,6 +257,94 @@ export async function rasterisePdf(
 }
 
 /**
+ * Rebuilds a PDF as one downsampled JPEG per page.
+ *
+ * This is the compression path when Ghostscript is absent. Ghostscript
+ * recompresses the images *inside* a document and leaves the text as text;
+ * nothing in pure JavaScript can do that, so the only lever left is to render
+ * each page and re-embed it.
+ *
+ * The consequence is real and the caller must surface it: **text stops being
+ * text.** It cannot be selected, searched or read by a screen reader
+ * afterwards. That is an acceptable trade for a folder of scanned photographs
+ * and a bad one for a contract, which is why this only runs when the lossless
+ * rewrite achieved nothing and the caller has said compression is what it
+ * wants.
+ *
+ * Page geometry is preserved exactly: each new page is created at the original
+ * page's point size, so the document still prints identically.
+ */
+export async function compressPdfByRasterising(
+  bytes: Buffer,
+  options: { dpi: number; quality: number },
+  onPage?: (done: number, total: number) => void,
+): Promise<Uint8Array> {
+  const { PDFDocument } = await import('pdf-lib');
+  const { pdf, destroy }: LoadedPdf = await loadDocument(bytes);
+
+  try {
+    const scale = options.dpi / PDF_UNITS_PER_INCH;
+    const out = await PDFDocument.create();
+    out.setProducer('HexaConverter');
+    out.setCreator('HexaConverter');
+
+    const total = Math.min(pdf.numPages, MAX_PAGES);
+
+    for (let pageNumber = 1; pageNumber <= total; pageNumber += 1) {
+      const page = await pdf.getPage(pageNumber);
+
+      // Unscaled viewport is the page's true size in PDF points.
+      const pagePoints = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({ scale });
+
+      const width = Math.max(1, Math.floor(viewport.width));
+      const height = Math.max(1, Math.floor(viewport.height));
+
+      if (width * height > MAX_PIXELS_PER_PAGE) {
+        throw new ConversionError(
+          `Page ${pageNumber} is too large to compress at this setting. Try a lighter level.`,
+        );
+      }
+
+      const canvas = createCanvas(width, height);
+      const canvasContext = canvas.getContext('2d');
+      canvasContext.fillStyle = '#ffffff';
+      canvasContext.fillRect(0, 0, width, height);
+
+      await page.render({
+        canvas: canvas as unknown as HTMLCanvasElement,
+        canvasContext: canvasContext as unknown as CanvasRenderingContext2D,
+        viewport,
+      }).promise;
+
+      const jpeg = await sharp(
+        Buffer.from(canvasContext.getImageData(0, 0, width, height).data),
+        { raw: { width, height, channels: 4 } },
+      )
+        .flatten({ background: '#ffffff' })
+        .jpeg({ quality: options.quality, mozjpeg: true })
+        .toBuffer();
+
+      const embedded = await out.embedJpg(jpeg);
+      const newPage = out.addPage([pagePoints.width, pagePoints.height]);
+      newPage.drawImage(embedded, {
+        x: 0,
+        y: 0,
+        width: pagePoints.width,
+        height: pagePoints.height,
+      });
+
+      page.cleanup();
+      onPage?.(pageNumber, total);
+    }
+
+    return out.save({ useObjectStreams: true });
+  } finally {
+    await destroy().catch(() => undefined);
+  }
+}
+
+/**
  * Extracts text, preserving line and paragraph breaks well enough to read.
  *
  * Items are grouped by their vertical position because pdfjs returns them in

@@ -7,7 +7,9 @@ import path from 'node:path';
 import archiver from 'archiver';
 import { PDFDocument, degrees } from 'pdf-lib';
 
+import { logger } from '@/lib/logger';
 import { requirementPath, runCommand } from '@/services/conversion/binaries';
+import { compressPdfByRasterising } from '@/services/documents/pdf-raster.service';
 import {
   groupConsecutive,
   resolvePages,
@@ -276,9 +278,30 @@ const GS_PRESET: Record<NonNullable<PdfParams['compression']>, string> = {
   strong: '/screen',
 };
 
+/**
+ * Render settings for the no-Ghostscript path, roughly matching what each
+ * Ghostscript preset targets.
+ */
+const RASTER_PRESET: Record<
+  NonNullable<PdfParams['compression']>,
+  { dpi: number; quality: number }
+> = {
+  light: { dpi: 150, quality: 82 },
+  balanced: { dpi: 120, quality: 72 },
+  strong: { dpi: 96, quality: 58 },
+};
+
+/**
+ * Saving below which the lossless rewrite is judged to have achieved nothing,
+ * and flattening the pages to images becomes worth its cost.
+ */
+const LOSSLESS_ENOUGH = 0.1;
+
 async function compress(task: PdfTaskInput): Promise<PdfTaskResult> {
   const before = (await stat(task.inputPaths[0]!)).size;
   const level = task.params.compression ?? 'balanced';
+  /** Set when pages were flattened to images, which the caller must be told. */
+  let flattened = false;
 
   task.onProgress(20);
 
@@ -304,13 +327,45 @@ async function compress(task: PdfTaskInput): Promise<PdfTaskResult> {
       { timeoutMs: 5 * 60 * 1000, signal: task.signal },
     );
   } else {
-    // Lossless fallback: re-save with object streams, dropping unreferenced
-    // objects and redundant structure. Modest, but never damages the file.
+    // Step one, always: re-save with object streams, dropping unreferenced
+    // objects and redundant structure. Lossless, so nothing is risked.
     const pdf = await loadPdf(task.inputPaths[0]!);
     await writeFile(
       task.outputPath,
       await pdf.save({ useObjectStreams: true, addDefaultPage: false }),
     );
+
+    const rewritten = (await stat(task.outputPath)).size;
+
+    // Step two, only if that achieved essentially nothing: render each page and
+    // re-embed it as a downsampled JPEG. This genuinely shrinks image-heavy
+    // documents, at the cost of turning text into pixels — so it is a last
+    // resort, and the result is only kept if it is actually smaller.
+    if ((before - rewritten) / before < LOSSLESS_ENOUGH) {
+      try {
+        const preset = RASTER_PRESET[level];
+        const rasterised = await compressPdfByRasterising(
+          await readFile(task.inputPaths[0]!),
+          preset,
+          (done, total) =>
+            task.onProgress(20 + Math.round((done / total) * 60)),
+        );
+
+        if (rasterised.byteLength < rewritten) {
+          await writeFile(task.outputPath, rasterised);
+          flattened = true;
+        }
+      } catch (error) {
+        // The lossless rewrite is already on disk and is a valid PDF, so a
+        // failure here costs the user nothing but the extra saving.
+        logger.warn(
+          'Rasterising compression failed; keeping lossless rewrite',
+          {
+            error,
+          },
+        );
+      }
+    }
   }
 
   task.onProgress(90);
@@ -331,10 +386,19 @@ async function compress(task: PdfTaskInput): Promise<PdfTaskResult> {
 
   const saved = Math.round(((before - after) / before) * 100);
 
+  // Say which of the three routes produced this. "Pages flattened to images"
+  // is the one that changes the document rather than just its packaging, and
+  // burying that would be the dishonest option.
+  const how = ghostscript
+    ? ''
+    : flattened
+      ? ' — pages flattened to images, so text is no longer selectable'
+      : ' (lossless rewrite)';
+
   return {
     outputPath: task.outputPath,
     mime: 'application/pdf',
-    detail: `${saved}% smaller${ghostscript ? '' : ' (lossless rewrite)'}`,
+    detail: `${saved}% smaller${how}`,
     stem: 'compressed',
   };
 }

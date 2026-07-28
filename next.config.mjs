@@ -105,6 +105,18 @@ const nextConfig = {
 
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
+
+    // Next truncates a request body past this and carries on, so the route
+    // receives the first N bytes of a file and nothing signals that the rest is
+    // missing. A truncated PDF still starts with `%PDF`, passes the magic-byte
+    // check, and then fails to parse — reported to the user as a corrupt or
+    // password-protected document, which it is not.
+    //
+    // Kept a little above MAX_UPLOAD_BYTES (512 MB) so the application's own
+    // limit is the one that rejects an oversized upload, with a message that
+    // says so.
+    largePageDataBytes: 512 * 1024 * 1024,
+    middlewareClientMaxBodySize: 544 * 1024 * 1024,
   },
 
   // Packages in `serverExternalPackages` are not bundled, so they have to be
