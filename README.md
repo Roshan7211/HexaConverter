@@ -49,26 +49,31 @@ signed download URL ◄─────────────────┘
 
 Layout:
 
-| Path                  | Contents                                                      |
-| --------------------- | ------------------------------------------------------------- |
-| `src/app/(marketing)` | Home, features, pricing, FAQ, about, contact                  |
-| `src/app/(tools)`     | Category converters and one landing page per conversion route |
-| `src/app/(app)`       | Authenticated dashboard, profile and settings                 |
-| `src/app/(auth)`      | Sign in, sign up, password reset, email confirmation          |
-| `src/app/api`         | Route handlers                                                |
-| `src/lib/conversion`  | Format registry, option schemas and the five engines          |
-| `src/lib/storage`     | Driver interface with local-filesystem and S3 implementations |
-| `src/lib/queue.ts`    | Job claiming, retries, lease recovery and retention purging   |
-| `src/components/ui`   | shadcn/ui primitives                                          |
+| Path                            | Contents                                                      |
+| ------------------------------- | ------------------------------------------------------------- |
+| `src/app/(site)/(marketing)`    | Home, features, FAQ, about, contact                           |
+| `src/app/(site)/(tools)`        | Category converters and one landing page per conversion route |
+| `src/app/(site)/(auth)`         | Sign in, sign up, password reset, email confirmation          |
+| `src/app/(site)/legal`          | Privacy, terms, cookies                                       |
+| `src/app/(app)`                 | Authenticated dashboard, profile and settings                 |
+| `src/app/api`                   | Route handlers                                                |
+| `src/services/conversion`       | Format registry, option schemas and the five engines          |
+| `src/services/documents`        | PDF rasterising, text extraction and the Word writer          |
+| `src/services/storage`          | Driver interface with local-filesystem and S3 implementations |
+| `src/services/jobs/queue.service.ts` | Job claiming, retries, lease recovery and retention purging |
+| `src/components/ui`             | shadcn/ui primitives                                          |
 
-The **format registry** (`src/lib/conversion/formats.ts`) is the single source
+The **format registry** (`src/services/conversion/registry.ts`) is the single source
 of truth. The picker UI, the SEO landing pages, `/api/formats` and the
 server-side validator all read from it, so an unsupported combination cannot be
 requested through any surface.
 
 ## Requirements
 
-- Node.js 20.11+ (22 recommended)
+- Node.js 22+ — `pdfjs-dist` calls `ArrayBuffer.prototype.transferToFixedLength`,
+  which does not exist before Node 21. On Node 20 the PDF routes do not fail
+  cleanly: standard-font text vanishes from rendered pages and a multi-page
+  render hangs indefinitely.
 - PostgreSQL 14+
 - Optional at runtime, required for some routes:
   - **LibreOffice** (`soffice`) — Word/Excel/PowerPoint/OpenDocument conversions
