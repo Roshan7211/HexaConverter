@@ -122,6 +122,7 @@ export const FOOTER_SECTIONS: readonly {
       { label: 'Privacy policy', href: '/legal/privacy' },
       { label: 'Terms of service', href: '/legal/terms' },
       { label: 'Cookie policy', href: '/legal/cookies' },
+      { label: 'Delete your account', href: '/legal/account-deletion' },
     ],
   },
 ];
