@@ -54,8 +54,16 @@ export const PUT = withErrorHandling(
     const { id } = await context.params;
     const requester = await resolveRequester();
 
-    const index = Number(request.headers.get('x-chunk-index'));
-    if (!Number.isInteger(index)) {
+    // `Number(null)` is 0, so testing the converted value lets a request with
+    // no header through as chunk 0 — which silently overwrites the first chunk
+    // of the transfer. The raw header has to be checked before conversion.
+    const rawIndex = request.headers.get('x-chunk-index');
+    const index = Number(rawIndex);
+    if (
+      rawIndex === null ||
+      rawIndex.trim() === '' ||
+      !Number.isInteger(index)
+    ) {
       return errors.badRequest('The x-chunk-index header is required.');
     }
 
