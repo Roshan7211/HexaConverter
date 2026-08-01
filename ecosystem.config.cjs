@@ -31,7 +31,11 @@ module.exports = {
       // sessions are JWTs and uploads go to object storage, so any instance can
       // serve any request.
       exec_mode: 'cluster',
-      instances: 'max',
+      // One process per core by default. On a small box that is the wrong
+      // trade: each instance costs 150-300 MB, and the memory is worth more to
+      // a LibreOffice conversion than to a second request handler. Set
+      // WEB_INSTANCES=1 on anything under ~4 GB.
+      instances: process.env.WEB_INSTANCES || 'max',
       env_production: {
         NODE_ENV: 'production',
         PORT: 3000,
@@ -40,7 +44,7 @@ module.exports = {
         WORKER_ENABLED: 'false',
       },
       // Next reads .env itself; this is only for values PM2 must see first.
-      max_memory_restart: '1G',
+      max_memory_restart: process.env.WEB_MAX_MEMORY || '1G',
       kill_timeout: 10000,
       listen_timeout: 10000,
       wait_ready: false,
@@ -69,12 +73,17 @@ module.exports = {
         PORT: 3001,
         HOSTNAME: '127.0.0.1',
         WORKER_ENABLED: 'true',
-        // Keep at or below the core count. Each slot may spawn an ffmpeg or
-        // soffice child that uses a full core.
-        WORKER_CONCURRENCY: '2',
+        // WORKER_CONCURRENCY is deliberately absent. PM2 sets this object into
+        // the environment before Next loads `.env`, and Next does not overwrite
+        // a variable that is already set — so naming it here would silently
+        // beat the value in `.env` and make that file a lie. Set it in `.env`,
+        // at or below the core count: each slot can spawn an ffmpeg or soffice
+        // child that saturates a core.
       },
-      // LibreOffice and ffmpeg dominate this figure, not Node's heap.
-      max_memory_restart: '3G',
+      // LibreOffice and ffmpeg dominate this figure, not Node's heap. It must
+      // sit below the host's real memory or the kernel's OOM killer gets there
+      // first, which kills an arbitrary process instead of restarting this one.
+      max_memory_restart: process.env.WORKER_MAX_MEMORY || '3G',
       // Long enough for an in-flight conversion to finish rather than be
       // killed mid-encode, leaving a half-written object in storage.
       kill_timeout: 30000,
