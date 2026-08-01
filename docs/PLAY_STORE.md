@@ -19,26 +19,27 @@ which answers stop being true.
 
 ## URLs to paste into the listing
 
-Replace `hexaconverter.app` with the production domain if it differs. These must
+Replace `hexaconverter.com` with the production domain if it differs. These must
 resolve over HTTPS, be publicly reachable with no sign-in and no geo-blocking,
 and must not be a Google Doc or a file that anyone can edit.
 
-| Play Console field           | URL                                                |
-| ---------------------------- | -------------------------------------------------- |
-| Privacy policy (App content) | `https://hexaconverter.app/legal/privacy`          |
-| Data deletion — web URL      | `https://hexaconverter.app/legal/account-deletion` |
-| Support email                | `support@hexaconverter.app`                        |
-| Terms of service (optional)  | `https://hexaconverter.app/legal/terms`            |
+| Play Console field           | URL                                           |
+| ---------------------------- | --------------------------------------------- |
+| Privacy policy (App content) | `https://www.hexaconverter.com/legal/privacy` |
+| Support email                | `info@hexaconverter.com`                      |
+| Terms of service (optional)  | `https://www.hexaconverter.com/legal/terms`   |
 
-Both legal pages are statically prerendered, listed in `sitemap.xml`, allowed by
+There is no "Data deletion — web URL" to give, because the app has no accounts;
+see [Account deletion declaration](#account-deletion-declaration). The legal
+pages are statically prerendered, listed in `sitemap.xml`, allowed by
 `robots.txt`, and linked from the site footer.
 
 ## Data safety form answers
 
 ### Does your app collect or share any of the required user data types?
 
-**Yes.** Answering "no" would be wrong: the app transmits uploaded files and, for
-account holders, an email address.
+**Yes.** Answering "no" would be wrong: the app transmits the files a user
+chooses to convert.
 
 ### Is all user data encrypted in transit?
 
@@ -46,7 +47,9 @@ account holders, an email address.
 
 ### Do you provide a way for users to request that their data be deleted?
 
-**Yes.** In-app from Settings, and from the public web URL above.
+**Yes.** Files are deleted automatically on a fixed schedule, and the toolkits
+offer a "delete my files" control that removes everything immediately. There is
+no account to delete.
 
 ### Data types
 
@@ -54,19 +57,17 @@ For every row: collected **yes**, shared **no**, processed **ephemerally** only
 where stated, and **never** used for advertising, marketing, fraud prevention on
 behalf of a third party, or personalisation.
 
-| Data type                    | Collected | Shared | Optional?            | Purpose                        | Notes                                                              |
-| ---------------------------- | --------- | ------ | -------------------- | ------------------------------ | ------------------------------------------------------------------ |
-| Files and docs               | Yes       | No     | Required for the app | App functionality              | The file being converted. Deleted on the schedule in the policy.   |
-| Photos and videos            | Yes       | No     | Required for the app | App functionality              | Only when the user picks one to convert. Same deletion schedule.   |
-| Email address                | Yes       | No     | **Optional**         | Account management             | Only if the user creates an account; conversions work without one. |
-| Name                         | Yes       | No     | **Optional**         | Account management             | Display name, account holders only.                                |
-| Password                     | Yes       | No     | **Optional**         | Account management             | Stored only as a bcrypt hash.                                      |
-| App activity — other actions | Yes       | No     | Required for the app | App functionality, Analytics\* | Conversion records: formats, sizes, duration, status.              |
-| Other IDs                    | Yes       | No     | Required for the app | Fraud prevention, security     | Opaque guest cookie identifier. Not an advertising or device ID.   |
+| Data type                    | Collected | Shared | Optional?            | Purpose                    | Notes                                                            |
+| ---------------------------- | --------- | ------ | -------------------- | -------------------------- | ---------------------------------------------------------------- |
+| Files and docs               | Yes       | No     | Required for the app | App functionality          | The file being converted. Deleted on the schedule in the policy. |
+| Photos and videos            | Yes       | No     | Required for the app | App functionality          | Only when the user picks one to convert. Same deletion schedule. |
+| App activity — other actions | Yes       | No     | Required for the app | App functionality          | Conversion records: formats, sizes, duration, status.            |
+| Other IDs                    | Yes       | No     | Required for the app | Fraud prevention, security | Opaque guest cookie identifier. Not an advertising or device ID. |
 
-\* Tick "Analytics" for the conversion record only if you surface conversion
-history and statistics in the dashboard, which this app does. It is first-party
-product data; no analytics SDK is involved and nothing leaves the service.
+Do **not** tick Email address, Name or Password. The app has no accounts, no
+sign-in and no subscription, so none of the three is ever collected. Do not tick
+"Analytics" either: nothing is surfaced back to the user and no analytics SDK is
+involved.
 
 ### Data types you must NOT tick
 
@@ -89,20 +90,24 @@ advertising or hardware identifier, because none is collected.
 
 ## Account deletion declaration
 
-Play requires apps that let users create an account to offer deletion of the
-account **and** its associated data, reachable both in the app and from a public
-web page.
+Play requires this **only of apps that let users create an account**. This app
+does not: there is no sign-up, no sign-in and no profile, so the account
+deletion requirement does not apply and no data-deletion URL is needed.
 
-- **In-app:** Settings → Delete account. Immediate, no request queue.
-- **Web:** `https://hexaconverter.app/legal/account-deletion`.
-- **What is deleted:** profile, email, display name, password hash, connected
-  providers, conversion history, stored files, pinned conversions,
-  notifications, and every session. Enforced by `deleteAccount()` in
-  `src/services/account/account.service.ts`, which removes stored objects before
-  deleting the row; the remaining records are removed by database cascade.
-- **What is retained:** security audit entries for 12 months. These hold a
-  salted IP hash and no file contents. Declare this in the "partial deletion"
-  box — Play accepts retention for security and legal reasons when it is stated.
+Answer the Play Console question "Does your app allow users to create an
+account?" with **No**.
+
+- **What is stored:** the file being converted, a conversion record (formats,
+  sizes, duration, status, salted IP hash) and an opaque cookie identifying the
+  browser. Nothing identifies a person.
+- **How it is deleted:** the source file goes as soon as the conversion
+  finishes; the output goes on the retention schedule in the privacy policy; the
+  job record is removed after 30 days by the scheduled cleanup. A user can also
+  clear everything immediately with the "delete my files" control in the
+  toolkits.
+
+If accounts are ever reintroduced, this section and the data-deletion URL both
+have to come back.
 
 ## Other declarations
 
@@ -137,7 +142,7 @@ Each of these invalidates specific answers above. Update the Data safety form
 | Firebase Analytics / GA           | App activity and Device/other IDs collected; Google as a recipient              |
 | Crashlytics or any crash reporter | Crash logs and diagnostics collected                                            |
 | AdMob or any ad network           | Advertising ID collected **and shared**; ads present; a consent flow in the EEA |
-| Play Billing / subscriptions      | Purchase history collected; financial info handling                             |
+| Play Billing / subscriptions      | Purchase history collected; financial info handling; accounts likely return     |
 | Push notifications (FCM)          | Device/other IDs collected                                                      |
 
 The privacy policy currently states plainly that the app contains none of these.
@@ -148,15 +153,14 @@ That sentence is the first thing to change.
 - [ ] Point `NEXT_PUBLIC_APP_URL` at the production domain. The policy renders
       the site URL from it, so a stale value publishes a policy naming the wrong
       site.
-- [ ] Confirm `support@hexaconverter.app` actually receives mail, and that
-      someone reads it. A bouncing contact on a privacy policy is a rejection,
-      and the address is also the deletion-request channel.
+- [ ] Confirm `info@hexaconverter.com` actually receives mail, and that
+      someone reads it. A bouncing contact on a privacy policy is a rejection.
 - [ ] Set `CONTACT_INBOX` to the same address so the contact form agrees with
       the policy.
-- [ ] Open both legal URLs in a private window, signed out, to confirm they load
-      with no redirect to sign-in.
-- [ ] Re-read the retention table against `UNIVERSAL_LIMITS.retentionHours` and
-      the constants in `src/services/jobs/retention.service.ts` if either has
+- [ ] Open the legal URLs in a private window to confirm they load with no
+      redirect and no prompt of any kind.
+- [ ] Re-read the retention table against `LIMITS.retentionHours` and the
+      constants in `src/services/jobs/retention.service.ts` if either has
       changed since this was written.
 - [ ] Have someone qualified review the policy. It is written to match the code,
       but matching the code is not the same as meeting every obligation that

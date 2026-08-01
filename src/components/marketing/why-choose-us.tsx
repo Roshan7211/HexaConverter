@@ -4,7 +4,7 @@ import { Check, Minus, Sparkles } from 'lucide-react';
 
 import { Reveal, RevealGroup, RevealItem } from '@/components/marketing/reveal';
 import { Badge } from '@/components/ui/badge';
-import { UNIVERSAL_LIMITS } from '@/lib/plans';
+import { LIMITS } from '@/lib/plans';
 import { TOTAL_ROUTES } from '@/services/conversion/registry';
 import { formatBytes } from '@/utils';
 
@@ -29,14 +29,14 @@ const DIFFERENTIATORS = [
     body: 'Output contains exactly what the encoder produced. No branding, no overlays, no injected metadata.',
   },
   {
-    stat: `${UNIVERSAL_LIMITS.retentionHours}h`,
+    stat: `${LIMITS.retentionHours}h`,
     label: 'file retention',
-    body: `Source files are deleted the moment a conversion finishes. Outputs are purged automatically after ${UNIVERSAL_LIMITS.retentionHours} hours, or sooner if you delete them yourself.`,
+    body: `Source files are deleted the moment a conversion finishes. Outputs are purged automatically after ${LIMITS.retentionHours} hours, or sooner if you delete them yourself.`,
   },
   {
-    stat: `${formatBytes(UNIVERSAL_LIMITS.maxFileBytes, 0)}`,
+    stat: `${formatBytes(LIMITS.maxFileBytes, 0)}`,
     label: 'per file, free',
-    body: 'Convert immediately, no signup wall and no paid tier. An account is optional and only adds history, shortcuts and statistics.',
+    body: 'Convert immediately. No signup wall, no paid tier and no account — the same limits apply to everyone.',
   },
 ] as const;
 

@@ -49,8 +49,7 @@ const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_CHUNKS = 4_096;
 
 export interface SessionOwner {
-  userId: string | null;
-  guestId: string | null;
+  guestId: string;
 }
 
 export interface StartSessionInput {

@@ -4,7 +4,7 @@
 
 Please report security issues privately rather than opening a public issue.
 
-Use the [contact form](https://hexaconverter.app/contact) with the subject
+Use the [contact form](https://www.hexaconverter.com/contact) with the subject
 prefix `SECURITY`, or email the address published in the repository metadata.
 Include:
 

@@ -1,7 +1,7 @@
 /**
  * Exercises the parts of the app that are not plain format conversion: the PDF
- * and archive toolkits, chunked upload sessions, job cancellation, the account
- * and dashboard endpoints, the cron hooks, and the rendered pages.
+ * and archive toolkits, chunked upload sessions, job cancellation, the cron
+ * hooks, and the rendered pages.
  *
  * Usage: node scripts/exercise-features.mjs <fixtureDir> [baseUrl]
  */
@@ -464,7 +464,6 @@ for (const [name, url] of [
   ['health', '/api/health'],
   ['formats', '/api/formats'],
   ['limits', '/api/limits'],
-  ['stats', '/api/stats'],
 ]) {
   await check(`GET /api/${name}`, async () => {
     const response = await http(url);
@@ -473,20 +472,13 @@ for (const [name, url] of [
   });
 }
 
-await check('account endpoints refuse a guest', async () => {
-  for (const url of ['/api/notifications', '/api/favorites']) {
-    const response = await http(url);
-    assert(response.status === 401, `${url} returned ${response.status}, expected 401`);
-  }
-  return '401 x3';
-});
-
-await check('/api/storage and /api/account/sessions are DELETE-only', async () => {
-  for (const url of ['/api/storage', '/api/account/sessions']) {
-    const response = await http(url);
-    assert(response.status === 405, `GET ${url} returned ${response.status}, expected 405`);
-  }
-  return '405 x2';
+await check('/api/storage is DELETE-only', async () => {
+  const response = await http('/api/storage');
+  assert(
+    response.status === 405,
+    `GET /api/storage returned ${response.status}, expected 405`,
+  );
+  return '405';
 });
 
 // ------------------------------------------------------------------ cron

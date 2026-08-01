@@ -12,7 +12,7 @@ import {
   checkQuota,
   retentionDate,
   type Requester,
-} from '@/services/auth/identity.service';
+} from '@/services/identity/identity.service';
 import { getFormat } from '@/services/conversion/registry';
 import { ensureWorker } from '@/services/jobs/worker';
 import { toPrismaCategory } from '@/services/jobs/job.service';
@@ -174,7 +174,7 @@ export async function createArchiveTask(
   const [primary, ...extra] = files;
 
   const row = await jobs.create({
-    owner: { userId: requester.userId, guestId: requester.guestId },
+    owner: { guestId: requester.guestId },
     category: toPrismaCategory('archive'),
     sourceFormat: primary!.sourceFormat,
     // Extraction may deliver a single file under its own type; the worker

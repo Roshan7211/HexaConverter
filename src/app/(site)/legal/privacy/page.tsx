@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { LegalPage } from '@/components/layout/legal-page';
-import { UNIVERSAL_LIMITS } from '@/lib/plans';
+import { LIMITS } from '@/lib/plans';
 import { buildMetadata, SITE } from '@/lib/seo';
 import { SUPPORT_EMAIL } from '@/lib/contact';
 
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         <li>Source files are deleted as soon as the conversion finishes.</li>
         <li>
           Converted files are deleted automatically when their retention window
-          ends, {UNIVERSAL_LIMITS.retentionHours} hours after the conversion.
+          ends, {LIMITS.retentionHours} hours after the conversion.
         </li>
         <li>
           We store a salted hash of your IP address, never the address itself.
@@ -40,16 +40,16 @@ export default function PrivacyPage() {
           no sharing of your data for anyone else&rsquo;s marketing.
         </li>
         <li>
-          You can delete your account, and everything attached to it, at any
-          time &mdash; from the app, or from the web without installing
-          anything.
+          There are no accounts. We never ask for your name, your email address
+          or a password in order to convert a file, so there is no profile to
+          hold and nothing to delete.
         </li>
       </ul>
 
       <h2>Who we are</h2>
       <p>
         {SITE.name} is operated by an independent developer and provides the
-        file conversion service at {SITE.url}. For any privacy question, to
+        file conversion service at {SITE.domain}. For any privacy question, to
         exercise a data right, or to reach the person responsible for this
         policy, email <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> or
         use the <Link href="/contact">contact form</Link>. We aim to answer
@@ -58,8 +58,8 @@ export default function PrivacyPage() {
 
       <h2>What this policy covers</h2>
       <p>
-        This policy applies to the {SITE.name} website at {SITE.url} and to the{' '}
-        {SITE.name} Android application distributed through Google Play. The
+        This policy applies to the {SITE.name} website at {SITE.domain} and to
+        the {SITE.name} Android application distributed through Google Play. The
         Android app is a secure wrapper around the same website: it contains no
         advertising libraries, no analytics or crash-reporting SDKs, and no
         third-party trackers, so what it collects is exactly what is described
@@ -100,14 +100,11 @@ export default function PrivacyPage() {
         upload only files you are entitled to share.
       </p>
 
-      <h3>Account data</h3>
+      <h3>Account data &mdash; none</h3>
       <p>
-        Creating an account is optional; conversions work without one. If you do
-        create one we store your email address, your display name, a bcrypt hash
-        of your password (never the password itself) and your plan. If you sign
-        in with a connected provider we store the provider identifier and the
-        tokens needed to keep the session valid. We do not receive your password
-        from those providers.
+        {SITE.name} has no accounts. There is no sign-up, no sign-in and no
+        subscription, so we hold no email address, no display name, no password
+        and no payment details. The service is free to everyone who opens it.
       </p>
 
       <h3>Technical data</h3>
@@ -127,18 +124,18 @@ export default function PrivacyPage() {
 
       <h3>Cookies</h3>
       <p>
-        We set a small number of strictly necessary cookies &mdash; an opaque
-        guest identifier, and session and anti-forgery cookies once you sign in.
-        There are no advertising or analytics cookies. The{' '}
-        <Link href="/legal/cookies">cookie policy</Link> lists every one of them
-        by name, purpose and lifetime.
+        We set one strictly necessary cookie: an opaque random identifier that
+        lets your browser download the file it just converted. It names no
+        person and is linked to nothing else. There are no advertising or
+        analytics cookies. The <Link href="/legal/cookies">cookie policy</Link>{' '}
+        lists every one of them by name, purpose and lifetime.
       </p>
 
       <h2>Why we are allowed to process it</h2>
       <p>
         Where the GDPR or UK GDPR applies, we rely on: performance of a contract
-        for conversions and account management; legitimate interests for abuse
-        prevention, security logging and service reliability; and legal
+        to carry out the conversion you asked for; legitimate interests for
+        abuse prevention, security logging and service reliability; and legal
         obligation where retention is required by law. We do not rely on
         consent-based tracking, because we do not track.
       </p>
@@ -159,60 +156,42 @@ export default function PrivacyPage() {
           </tr>
           <tr>
             <td>Converted output file</td>
-            <td>
-              {UNIVERSAL_LIMITS.retentionHours} hours, or until you delete it
-            </td>
+            <td>{LIMITS.retentionHours} hours, or until you delete it</td>
           </tr>
           <tr>
             <td>Incomplete or abandoned upload</td>
             <td>Discarded when the upload session expires</td>
           </tr>
           <tr>
-            <td>Conversion record (no file contents)</td>
             <td>
-              Until you delete it, or 30 days for conversions made as a guest
+              Conversion record &mdash; formats, sizes, status and a hashed IP,
+              never file contents
             </td>
+            <td>30 days</td>
           </tr>
           <tr>
             <td>Account data</td>
-            <td>Until you delete your account</td>
+            <td>Not applicable &mdash; there are no accounts</td>
           </tr>
           <tr>
-            <td>In-app notifications</td>
-            <td>90 days</td>
-          </tr>
-          <tr>
-            <td>Security audit log (hashed IP, no file contents)</td>
-            <td>12 months</td>
+            <td>Messages sent through the contact form</td>
+            <td>Until the matter is resolved</td>
           </tr>
         </tbody>
       </table>
 
-      <h2>Deleting your account and your data</h2>
+      <h2>Deleting your data</h2>
       <p>
-        You can delete your account at any time, and you do not need the app
-        installed to do it:
+        There is no account to delete, and nothing that identifies you is stored
+        in the first place. Your files are removed on the schedule above without
+        you having to ask.
       </p>
-      <ul>
-        <li>
-          <strong>In the app or on the website:</strong> open{' '}
-          <Link href="/dashboard/settings">Settings</Link> and choose to delete
-          your account.
-        </li>
-        <li>
-          <strong>Without the app:</strong> follow the{' '}
-          <Link href="/legal/account-deletion">account deletion</Link>{' '}
-          instructions, which work from any browser.
-        </li>
-      </ul>
       <p>
-        Deleting your account immediately and permanently removes your profile,
-        your email address and display name, your conversion history, your
-        pinned conversions, your notifications and every file still stored for
-        you. It cannot be undone. Security audit entries, which contain a hashed
-        IP address and no file contents, are kept for the 12 months described
-        above so that we can investigate abuse; they are not linked to a profile
-        once the account is gone.
+        If you would rather not wait, the archive and PDF tools include a
+        &ldquo;delete my files&rdquo; control that removes everything stored for
+        your browser immediately. Clearing your cookies has the same practical
+        effect: the identifier is gone, and what remains is a row of formats and
+        timings that points to nobody.
       </p>
 
       <h2>Who else can see your data</h2>
@@ -240,14 +219,11 @@ export default function PrivacyPage() {
           </tr>
           <tr>
             <td>Managed database</td>
-            <td>Stores account and conversion metadata, never file contents</td>
+            <td>Stores conversion metadata, never file contents</td>
           </tr>
           <tr>
             <td>Email delivery</td>
-            <td>
-              Sends confirmation, password reset and support email you have
-              asked for
-            </td>
+            <td>Delivers replies to messages you send us</td>
           </tr>
         </tbody>
       </table>
@@ -268,8 +244,9 @@ export default function PrivacyPage() {
       <h2>Your rights</h2>
       <p>
         You can access, correct, export or erase your data at any time, and
-        object to or restrict processing. Most of this is self-service from your
-        settings; for anything else, email{' '}
+        object to or restrict processing. In practice there is very little to
+        exercise these against, because we hold nothing that identifies you; for
+        anything else, email{' '}
         <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>. We will not
         charge you or degrade the service for exercising a right. If you are in
         the EEA or UK you also have the right to lodge a complaint with your
@@ -286,10 +263,9 @@ export default function PrivacyPage() {
         by the object store. Download links are signed with an HMAC bound to a
         single conversion and expire within minutes, so a link cannot be guessed
         or replayed indefinitely. Conversions run in isolated temporary
-        directories that are removed after each job. Passwords are stored as
-        bcrypt hashes, and changing your password or signing out everywhere
-        revokes existing sessions. See the <Link href="/faq">FAQ</Link> for more
-        detail.
+        directories that are removed after each job. There are no passwords to
+        protect, because there are no accounts. See the{' '}
+        <Link href="/faq">FAQ</Link> for more detail.
       </p>
       <p>
         No service can promise perfect security. If we discover a breach
@@ -308,10 +284,10 @@ export default function PrivacyPage() {
 
       <h2>Changes</h2>
       <p>
-        If this policy changes materially we will update the date above and, for
-        account holders, notify you by email before the change takes effect. We
-        keep this page at a stable address so that it can be linked from Google
-        Play and elsewhere.
+        If this policy changes materially we will update the date above. We have
+        no mailing list to announce it on &mdash; there are no accounts &mdash;
+        so this page is the notice. We keep it at a stable address so that it
+        can be linked from Google Play and elsewhere.
       </p>
     </LegalPage>
   );

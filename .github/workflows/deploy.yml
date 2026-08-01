@@ -93,6 +93,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Inlined into the bundle at build time — it cannot be corrected by
+          # runtime configuration, so the released image is only ever as right
+          # as this value.
+          build-args: |
+            NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL || 'https://www.hexaconverter.com' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: true
@@ -142,7 +147,7 @@ jobs:
     # make this a manual approval step.
     environment:
       name: production
-      url: https://hexaconverter.app
+      url: https://www.hexaconverter.com
 
     steps:
       - name: Pull and restart over SSH
@@ -174,7 +179,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in $(seq 1 30); do
-            status=$(curl -fsS https://hexaconverter.app/api/health | sed -n 's/.*"status":"\([a-z]*\)".*/\1/p' || true)
+            status=$(curl -fsS https://www.hexaconverter.com/api/health | sed -n 's/.*"status":"\([a-z]*\)".*/\1/p' || true)
             echo "attempt $attempt: ${status:-unreachable}"
             if [ "$status" = "ok" ]; then
               echo "Healthy."

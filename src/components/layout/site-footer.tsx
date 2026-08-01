@@ -73,13 +73,23 @@ export function SiteFooter() {
           <p>
             © {year} {SITE.name}. All rights reserved.
           </p>
-          <p className="flex items-center gap-2">
-            <span className="relative flex size-2" aria-hidden="true">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" />
-              <span className="relative inline-flex size-2 rounded-full bg-success" />
-            </span>
-            All systems operational
-          </p>
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
+            {/*
+              Links to the live probe rather than asserting a state. Rendering
+              a green "all systems operational" from static markup would keep
+              claiming it while the service was down, and the page has not
+              checked anything — `/api/health` is the only thing that knows.
+            */}
+            <Link
+              href="/api/health"
+              className="rounded-sm underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Service status
+            </Link>
+            <p>
+              Developed by <span className="font-medium">HEXAVO</span>
+            </p>
+          </div>
         </div>
       </div>
     </footer>

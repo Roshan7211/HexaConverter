@@ -7,9 +7,9 @@ import { SiteHeader } from '@/components/layout/site-header';
  * Public site shell.
  *
  * The marketing header and footer live here rather than in the root layout so
- * the dashboard — which has its own sidebar and topbar — is not wrapped in
- * chrome it does not want. Route groups do not affect URLs, so `/`, `/pricing`
- * and `/tools/*` keep their paths.
+ * that error and not-found screens rendered above this level are not wrapped
+ * in chrome they do not want. Route groups do not affect URLs, so `/` and
+ * `/tools/*` keep their paths.
  */
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (

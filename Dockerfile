@@ -38,12 +38,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl \
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# The public origin is NOT a placeholder. `NEXT_PUBLIC_*` values are inlined
+# into the bundle by the compiler, so this is the only moment they can be set —
+# injecting one at runtime does nothing. Build with the real origin:
+#
+#   docker build --build-arg NEXT_PUBLIC_APP_URL=https://www.hexaconverter.com .
+#
+# Get it wrong and the image ships canonical URLs, a sitemap and Open Graph
+# tags all naming the wrong host.
+ARG NEXT_PUBLIC_APP_URL=https://www.hexaconverter.com
+ARG NEXT_PUBLIC_APP_NAME=HexaConverter
+
 # Build-time placeholders: real secrets are injected at runtime. The build only
 # needs these to satisfy env validation while prerendering static pages.
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL} \
+    NEXT_PUBLIC_APP_NAME=${NEXT_PUBLIC_APP_NAME} \
     DATABASE_URL=postgresql://build:build@localhost:5432/build \
-    NEXTAUTH_SECRET=build-time-placeholder-secret-value-32-chars \
     DOWNLOAD_URL_SECRET=build-time-placeholder-secret-value-32-chars \
     CRON_SECRET=build-time-placeholder \
     STORAGE_DRIVER=s3 \

@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { LegalPage } from '@/components/layout/legal-page';
-import { buildMetadata } from '@/lib/seo';
+import { buildMetadata, SITE } from '@/lib/seo';
 
 export const metadata: Metadata = buildMetadata({
   title: 'Cookie policy',
   description:
-    'HexaConverter uses a small number of strictly necessary cookies and no tracking or advertising cookies.',
+    'HexaConverter uses one strictly necessary cookie and no tracking or advertising cookies.',
   path: '/legal/cookies',
 });
 
@@ -17,7 +17,7 @@ export default function CookiesPage() {
   return (
     <LegalPage
       title="Cookie policy"
-      summary="We use a handful of strictly necessary cookies and nothing else. No advertising, no cross-site tracking, no consent banner needed."
+      summary="We use one strictly necessary cookie and nothing else. No advertising, no cross-site tracking, no consent banner needed."
       lastUpdated={LAST_UPDATED}
     >
       <h2>Cookies we set</h2>
@@ -40,25 +40,13 @@ export default function CookiesPage() {
             </td>
             <td>30 days</td>
           </tr>
-          <tr>
-            <td>next-auth.session-token</td>
-            <td>Keeps you signed in. Set only after you sign in.</td>
-            <td>30 days</td>
-          </tr>
-          <tr>
-            <td>next-auth.csrf-token</td>
-            <td>
-              Protects sign-in requests against cross-site request forgery.
-            </td>
-            <td>Session</td>
-          </tr>
-          <tr>
-            <td>next-auth.callback-url</td>
-            <td>Returns you to the page you started from after signing in.</td>
-            <td>Session</td>
-          </tr>
         </tbody>
       </table>
+      <p>
+        That is the entire list. There are no accounts on {SITE.name}, so there
+        is no session cookie, no sign-in cookie and nothing that identifies you
+        as a person.
+      </p>
 
       <h2>What we do not use</h2>
       <ul>
@@ -77,9 +65,9 @@ export default function CookiesPage() {
       <h2>Managing cookies</h2>
       <p>
         You can clear or block cookies in your browser settings. Blocking the
-        session cookie will sign you out; blocking the guest cookie means
-        anonymous conversions cannot be listed back to you, though conversion
-        itself still works.
+        guest cookie means a conversion cannot be tied back to your browser, so
+        you would not be able to download its result — but nothing about you is
+        recorded either way.
       </p>
 
       <p>

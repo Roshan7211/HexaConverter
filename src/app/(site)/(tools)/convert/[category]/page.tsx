@@ -12,14 +12,14 @@ import {
   routeSlug,
 } from '@/services/conversion/registry';
 import { CATEGORIES, type Category } from '@/types/conversion';
-import { UNIVERSAL_LIMITS } from '@/lib/plans';
+import { LIMITS } from '@/lib/plans';
 import { breadcrumbSchema, buildMetadata, howToSchema } from '@/lib/seo';
 
 /**
  * Category converter page.
  *
- * Statically generated for every category. The converter widget refines the
- * displayed limits to the visitor's plan after hydration.
+ * Statically generated for every category. The converter widget confirms the
+ * displayed limits against the server after hydration.
  */
 
 interface PageProps {
@@ -199,7 +199,7 @@ export default async function CategoryConverterPage({ params }: PageProps) {
               </li>
               <li>
                 Converted files are removed automatically after{' '}
-                {UNIVERSAL_LIMITS.retentionHours} hours.
+                {LIMITS.retentionHours} hours.
               </li>
               <li>Download links are signed and expire in minutes.</li>
             </ul>

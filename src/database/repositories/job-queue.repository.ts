@@ -27,7 +27,6 @@ export interface ClaimedJobRow {
   targetFormat: string;
   options: Prisma.JsonValue;
   attempts: number;
-  userId: string | null;
   operation: DocumentOperation | null;
   archiveOperation: ArchiveOperation | null;
   extraInputKeys: string[];
@@ -72,7 +71,6 @@ export async function claimNext(
       targetFormat: true,
       options: true,
       attempts: true,
-      userId: true,
       operation: true,
       archiveOperation: true,
       extraInputKeys: true,
@@ -212,7 +210,11 @@ export function findExpired(limit: number) {
   });
 }
 
-/** Clears file references but keeps the row, so history survives deletion. */
+/**
+ * Clears file references but keeps the row, so a browser still polling a
+ * finished conversion gets "expired" rather than "not found". The rows
+ * themselves go in the sweep below.
+ */
 export function markExpired(ids: string[]) {
   return prisma.conversionJob.updateMany({
     where: { id: { in: ids } },
@@ -225,8 +227,13 @@ export function markExpired(ids: string[]) {
   });
 }
 
-export function deleteGuestHistoryBefore(cutoff: Date) {
+/**
+ * Removes job rows outright once their files are long gone. Nothing is kept
+ * for a user to look back at, so the record has no reason to outlive the file
+ * it described.
+ */
+export function deleteHistoryBefore(cutoff: Date) {
   return prisma.conversionJob.deleteMany({
-    where: { userId: null, createdAt: { lt: cutoff } },
+    where: { createdAt: { lt: cutoff } },
   });
 }

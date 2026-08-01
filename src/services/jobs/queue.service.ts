@@ -12,10 +12,6 @@ import * as queue from '@/database/repositories/job-queue.repository';
 import { serverEnv } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import { runConversion } from '@/services/conversion/conversion.service';
-import {
-  notifyConversionCompleted,
-  notifyConversionFailed,
-} from '@/services/notifications/notification.service';
 import { storage } from '@/services/storage';
 import { ConversionError, type ConversionOptions } from '@/types/conversion';
 
@@ -47,8 +43,6 @@ export interface ClaimedJob {
   targetFormat: string;
   options: ConversionOptions;
   attempts: number;
-  /** Null for guest conversions, which have nowhere to deliver a notification. */
-  userId: string | null;
   /** Set for document-toolkit jobs. */
   operation: DocumentOperation | null;
   /** Set for archive-toolkit jobs. */
@@ -146,15 +140,6 @@ export async function processJob(job: ClaimedJob): Promise<void> {
       ),
     );
 
-    if (job.userId) {
-      await notifyConversionCompleted({
-        userId: job.userId,
-        jobId: job.id,
-        inputName: job.inputName,
-        targetFormat: job.targetFormat,
-      });
-    }
-
     log.info('Job completed', { durationMs: Date.now() - startedAt });
   } catch (error) {
     await handleFailure(job, error, controller.signal.aborted, startedAt);
@@ -204,15 +189,6 @@ async function handleFailure(
         .catch(() => undefined),
     ),
   );
-
-  if (job.userId) {
-    await notifyConversionFailed({
-      userId: job.userId,
-      jobId: job.id,
-      inputName: job.inputName,
-      reason: userFacing,
-    });
-  }
 }
 
 /**

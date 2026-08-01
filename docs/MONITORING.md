@@ -16,7 +16,7 @@
 a monitor needs.
 
 ```bash
-curl -s https://hexaconverter.app/api/health | jq
+curl -s https://www.hexaconverter.com/api/health | jq
 ```
 
 ```json
@@ -60,7 +60,7 @@ Ordered by how much it should wake someone.
 | Condition                                           | Why                                                       |
 | --------------------------------------------------- | --------------------------------------------------------- |
 | `/api/health` returns 503, or unreachable for 2 min | Users cannot convert anything                             |
-| `checks.database != "ok"`                           | Nothing that touches data works, including sign-in        |
+| `checks.database != "ok"`                           | Nothing that touches data works, including conversions    |
 | `checks.storage != "ok"`                            | Uploads and downloads both fail                           |
 | TLS certificate expires in < 7 days                 | Certbot renewal has stopped                               |
 | Disk > 90% on the worker host                       | Conversions write to scratch space and will start failing |
@@ -181,7 +181,7 @@ no longer accurate and that is a real problem, not a performance nit.
 Any of Better Stack, Uptime Robot, Healthchecks.io or a Grafana Cloud probe.
 
 ```
-Endpoint  https://hexaconverter.app/api/health
+Endpoint  https://www.hexaconverter.com/api/health
 Interval  60s
 Regions   at least two
 Healthy   HTTP 200 AND body contains "\"status\":\"ok\""
@@ -220,9 +220,9 @@ Two things to get right, or you will undo a guarantee the site makes:
 2. **Do not send file contents or filenames.** Filenames are user data. Scrub
    `beforeSend`, and keep the same redaction list the logger uses.
 
-The `AuditLog` table already records security-relevant events — sign-ins,
-password changes, session revocations, deletions — with a salted IP hash rather
-than the address, retained a year. Query it before reaching for an external tool.
+The application log records conversion lifecycle events with a salted IP hash
+rather than the address. There is no audit table and no account activity to
+audit: the service holds nothing that identifies a person.
 
 ---
 
@@ -231,7 +231,7 @@ than the address, retained a year. Query it before reaching for an external tool
 **`/api/health` returns 503**
 
 ```bash
-curl -s https://hexaconverter.app/api/health | jq .checks   # which check failed?
+curl -s https://www.hexaconverter.com/api/health | jq .checks   # which check failed?
 docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs --tail=100 web
 ```
@@ -274,7 +274,7 @@ Non-zero and rising means the retention sweep is not running. Trigger it by hand
 then fix the scheduler:
 
 ```bash
-curl -fsS -X POST https://hexaconverter.app/api/cron/cleanup \
+curl -fsS -X POST https://www.hexaconverter.com/api/cron/cleanup \
   -H "Authorization: Bearer $CRON_SECRET" | jq
 ```
 
@@ -291,7 +291,7 @@ docker system prune -f --filter 'until=168h'
 **After any deploy**
 
 ```bash
-curl -s https://hexaconverter.app/api/health | jq
+curl -s https://www.hexaconverter.com/api/health | jq
 docker compose -f docker-compose.prod.yml logs --tail=50 web | jq -c 'select(.level=="error")'
 ```
 

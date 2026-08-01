@@ -102,7 +102,7 @@ export default async function ToolPage({ params }: PageProps) {
     {
       question: `Is converting ${from.id.toUpperCase()} to ${to.id.toUpperCase()} free?`,
       answer:
-        'Yes. Conversions are free without an account, up to the guest limits. Creating a free account raises the file size limit, allows larger batches and keeps a history of your conversions.',
+        'Yes, and there is nothing to sign up for. Every conversion is free, there is no paid tier, and the limits are the same for everyone.',
     },
     {
       question: `Will the quality change when converting to ${to.label}?`,

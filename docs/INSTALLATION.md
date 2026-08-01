@@ -75,7 +75,6 @@ cp .env.example .env
 Generate the three secrets — do not reuse the placeholders:
 
 ```bash
-openssl rand -base64 32   # NEXTAUTH_SECRET
 openssl rand -hex 32      # DOWNLOAD_URL_SECRET
 openssl rand -hex 32      # CRON_SECRET
 ```
@@ -107,11 +106,10 @@ For a hosted database (Supabase, Neon, RDS), two things bite:
   node -e 'console.log(encodeURIComponent(process.argv[1]))' 'your-password'
   ```
 
-### 4. Apply migrations and seed
+### 4. Apply migrations
 
 ```bash
 npm run db:migrate     # creates the 16 tables
-npm run db:seed        # optional sample data
 ```
 
 ### 5. Run it
@@ -190,16 +188,12 @@ sign-up. Check with `docker compose ps` or `pg_isready -h host -p port`.
 
 **`Invalid environment configuration`** — the message names the variable and the
 constraint it failed. Secrets have minimum lengths (32 characters for
-`NEXTAUTH_SECRET` and `DOWNLOAD_URL_SECRET`, 16 for `CRON_SECRET`).
+`DOWNLOAD_URL_SECRET`, 16 for `CRON_SECRET`).
 
 **`Local storage is not durable across replicas`** — a production build refuses
 `STORAGE_DRIVER=local`. Either set `STORAGE_DRIVER=s3`, or set
 `ALLOW_LOCAL_STORAGE_IN_PRODUCTION=true` if this really is one node with a
 persistent volume.
-
-**`REQUIRE_EMAIL_VERIFICATION needs SMTP_HOST`** — deliberate. Enforcing
-verification with no way to send the link would lock every new account out
-permanently, so startup refuses the combination.
 
 **`"next start" does not work with "output: standalone"`** — correct, and the
 warning means what it says. Use `node .next/standalone/server.js`, which is what

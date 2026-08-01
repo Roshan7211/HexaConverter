@@ -3,7 +3,7 @@ import { withErrorHandling } from '@/middleware/with-error-handling';
 import { enforceRateLimit } from '@/middleware/with-rate-limit';
 import { parseJsonBody } from '@/middleware/with-validation';
 import { startSessionSchema } from '@/api/schemas';
-import { resolveRequester } from '@/services/auth/identity.service';
+import { resolveRequester } from '@/services/identity/identity.service';
 import { startSession } from '@/services/upload/session.service';
 import { describeScanning } from '@/services/upload/scanner.service';
 import { UploadError } from '@/services/upload/upload.service';
@@ -35,7 +35,7 @@ export const POST = withErrorHandling(
         filename: body.data.filename,
         declaredSize: body.data.size,
         maxBytes: requester.limits.maxFileBytes,
-        owner: { userId: requester.userId, guestId: requester.guestId },
+        owner: { guestId: requester.guestId },
       });
 
       return ok({ session, scanning: describeScanning() }, { status: 201 });

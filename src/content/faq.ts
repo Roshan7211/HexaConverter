@@ -1,5 +1,5 @@
 import type { FaqEntry } from '@/components/marketing/faq-section';
-import { UNIVERSAL_LIMITS } from '@/lib/plans';
+import { LIMITS } from '@/lib/plans';
 import { formatBytes } from '@/utils';
 
 /** Canonical FAQ content, reused by the FAQ page and its structured data. */
@@ -7,11 +7,11 @@ import { formatBytes } from '@/utils';
 export const GENERAL_FAQ: readonly FaqEntry[] = [
   {
     question: 'Do I need an account to convert a file?',
-    answer: `No. The service is free and needs no account: anyone can convert up to ${UNIVERSAL_LIMITS.jobsPerPeriod.toLocaleString()} files a month, ${formatBytes(UNIVERSAL_LIMITS.maxFileBytes, 0)} each. An account changes nothing about the limits — it keeps a history of your conversions, lets you pin shortcuts and shows what is still in storage.`,
+    answer: `No — there are no accounts at all. The service is free for everyone: convert up to ${LIMITS.jobsPerPeriod.toLocaleString()} files a month, ${formatBytes(LIMITS.maxFileBytes, 0)} each. Nothing to sign up for, and nothing to sign in to.`,
   },
   {
     question: 'How long are my files stored?',
-    answer: `The source file is deleted as soon as its conversion finishes. The converted file is kept for ${UNIVERSAL_LIMITS.retentionHours} hours so you can download it, then removed automatically by a scheduled cleanup job. You can also delete it yourself at any time.`,
+    answer: `The source file is deleted as soon as its conversion finishes. The converted file is kept for ${LIMITS.retentionHours} hours so you can download it, then removed automatically by a scheduled cleanup job. You can also delete it yourself at any time.`,
   },
   {
     question: 'Is there a watermark on converted files?',
@@ -25,7 +25,7 @@ export const GENERAL_FAQ: readonly FaqEntry[] = [
   },
   {
     question: 'How large a file can I convert?',
-    answer: `Up to ${formatBytes(UNIVERSAL_LIMITS.maxFileBytes, 0)} per file, for everyone. Very large media files take proportionally longer to encode, and the progress bar reports real progress rather than an estimate.`,
+    answer: `Up to ${formatBytes(LIMITS.maxFileBytes, 0)} per file, for everyone. Very large media files take proportionally longer to encode, and the progress bar reports real progress rather than an estimate.`,
   },
   {
     question: 'Why did my conversion fail?',
@@ -34,7 +34,7 @@ export const GENERAL_FAQ: readonly FaqEntry[] = [
   },
   {
     question: 'Can I convert several files at once?',
-    answer: `Yes — up to ${UNIVERSAL_LIMITS.maxBatchFiles} files in one batch, with ${UNIVERSAL_LIMITS.concurrentJobs} converting in parallel. Every file in a batch shares the same output format and settings, and each reports its own progress.`,
+    answer: `Yes — up to ${LIMITS.maxBatchFiles} files in one batch, with ${LIMITS.concurrentJobs} converting in parallel. Every file in a batch shares the same output format and settings, and each reports its own progress.`,
   },
   {
     question: 'Is my data used for anything else?',
@@ -62,7 +62,7 @@ export const SECURITY_FAQ: readonly FaqEntry[] = [
   {
     question: 'Can someone else access my converted file?',
     answer:
-      'Download links are signed with an HMAC bound to a single conversion and expire within minutes, so links cannot be guessed or enumerated. Conversions are also scoped to your account or your anonymous session cookie.',
+      'Download links are signed with an HMAC bound to a single conversion and expire within minutes, so links cannot be guessed or enumerated. Conversions are also scoped to an anonymous cookie, so one visitor can never reach the files of another.',
   },
   {
     question: 'Do you scan uploads for malicious content?',

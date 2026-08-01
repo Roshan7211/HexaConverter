@@ -3,7 +3,7 @@ import { createJobSchema, jobListQuerySchema } from '@/api/schemas';
 import { enforceRateLimit } from '@/middleware/with-rate-limit';
 import { withErrorHandling } from '@/middleware/with-error-handling';
 import { parseJsonBody } from '@/middleware/with-validation';
-import { resolveRequester } from '@/services/auth/identity.service';
+import { resolveRequester } from '@/services/identity/identity.service';
 import { createConversionJob } from '@/services/jobs/job-creation.service';
 import { listJobs } from '@/services/jobs/job.service';
 

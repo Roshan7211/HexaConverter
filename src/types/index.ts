@@ -30,13 +30,4 @@ export type {
   ResizeFit,
 } from '@/types/conversion';
 
-export type {
-  CategoryPoint,
-  DailyPoint,
-  DashboardStats,
-  ExpiringFile,
-  StatsSummary,
-  StorageUsage,
-} from '@/types/stats';
-
 export type { PutOptions, StorageDriver } from '@/types/storage';

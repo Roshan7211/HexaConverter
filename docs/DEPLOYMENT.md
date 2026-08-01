@@ -38,7 +38,7 @@ decide where it can run.
    which is only correct for a single node with a persistent volume. A local
    directory is not shared between replicas: a file written by one instance is
    invisible to the next.
-3. **Three generated secrets.** `NEXTAUTH_SECRET`, `DOWNLOAD_URL_SECRET`,
+3. **Two generated secrets.** `DOWNLOAD_URL_SECRET`
    `CRON_SECRET` — fresh per environment, never the development values.
 4. **`NEXT_PUBLIC_APP_URL` set before the build.** It is inlined into the client
    bundle, so it cannot be changed at runtime. Get it wrong and canonical URLs,
@@ -194,7 +194,7 @@ worker needs no inbound traffic, so it can be the cheapest box available.
 sudo cp deploy/nginx/hexaconverter.conf /etc/nginx/sites-available/hexaconverter
 sudo ln -s /etc/nginx/sites-available/hexaconverter /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d hexaconverter.app -d www.hexaconverter.app
+sudo certbot --nginx -d hexaconverter.com -d www.hexaconverter.com
 ```
 
 Three settings in that file are load-bearing and are exactly what a generic
@@ -281,7 +281,7 @@ Before any destructive migration, take a snapshot — see [BACKUP.md](./BACKUP.m
 
 **Secrets**
 
-- [ ] `NEXTAUTH_SECRET`, `DOWNLOAD_URL_SECRET`, `CRON_SECRET` freshly generated
+- [ ] `DOWNLOAD_URL_SECRET` and `CRON_SECRET` freshly generated
 - [ ] No development or example value anywhere in `.env.production`
 - [ ] `chmod 600 .env.production`
 - [ ] Database password rotated if it has ever been pasted anywhere
@@ -289,11 +289,10 @@ Before any destructive migration, take a snapshot — see [BACKUP.md](./BACKUP.m
 
 **Configuration**
 
-- [ ] `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` are the real https origin
+- [ ] `NEXT_PUBLIC_APP_URL` is the real https origin
 - [ ] `STORAGE_DRIVER=s3` with a bucket that is **not** public
 - [ ] `MAX_UPLOAD_BYTES` ≤ Nginx `client_max_body_size`
 - [ ] OAuth callback URLs registered for the production domain
-- [ ] `REQUIRE_EMAIL_VERIFICATION=true` **and** SMTP working
 
 **Infrastructure**
 
@@ -307,10 +306,10 @@ Before any destructive migration, take a snapshot — see [BACKUP.md](./BACKUP.m
 **Verify**
 
 ```bash
-curl -s https://hexaconverter.app/api/health | jq
-curl -s https://hexaconverter.app/robots.txt
-curl -s https://hexaconverter.app/sitemap.xml | grep -c '<loc>'
-curl -sI https://hexaconverter.app | grep -i 'strict-transport\|content-security'
+curl -s https://www.hexaconverter.com/api/health | jq
+curl -s https://www.hexaconverter.com/robots.txt
+curl -s https://www.hexaconverter.com/sitemap.xml | grep -c '<loc>'
+curl -sI https://www.hexaconverter.com | grep -i 'strict-transport\|content-security'
 ```
 
 Then convert one real file end-to-end in each category you support, and confirm

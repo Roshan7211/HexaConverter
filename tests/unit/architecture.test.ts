@@ -161,10 +161,8 @@ describe('module hygiene', () => {
       'src/services/jobs/worker.ts',
       'src/services/jobs/retention.service.ts',
       'src/services/jobs/job.service.ts',
-      'src/services/account/account.service.ts',
-      'src/services/favorites/favorite.service.ts',
-      'src/services/notifications/notification.service.ts',
-      'src/services/stats/stats.service.ts',
+      'src/services/identity/identity.service.ts',
+      'src/services/upload/session.service.ts',
       'src/services/documents/pdf-toolkit.service.ts',
       'src/services/documents/pdf-to-docx.service.ts',
       'src/services/documents/document-task.service.ts',
@@ -181,11 +179,7 @@ describe('module hygiene', () => {
   });
 
   it('repositories are the only modules importing the Prisma client', () => {
-    const allowed = new Set([
-      'database/client.ts',
-      'database/health.ts',
-      'database/seed.ts',
-    ]);
+    const allowed = new Set(['database/client.ts', 'database/health.ts']);
     const violations: string[] = [];
 
     for (const file of sourceFiles()) {
@@ -197,10 +191,6 @@ describe('module hygiene', () => {
       }
     }
 
-    // `auth-options` is the documented exception: the NextAuth Prisma adapter
-    // takes the client instance itself.
-    expect(violations.filter((file) => !allowed.has(file))).toEqual([
-      'services/auth/auth-options.ts',
-    ]);
+    expect(violations.filter((file) => !allowed.has(file))).toEqual([]);
   });
 });

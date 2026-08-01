@@ -7,7 +7,7 @@ import { buildMetadata, SITE } from '@/lib/seo';
 export const metadata: Metadata = buildMetadata({
   title: 'Terms of service',
   description:
-    'The terms that govern your use of HexaConverter, including acceptable use, plan limits, liability and termination.',
+    'The terms that govern your use of HexaConverter, including acceptable use, service limits, liability and termination.',
   path: '/legal/terms',
 });
 
@@ -56,22 +56,18 @@ export default function TermsPage() {
           distribute malware, or attempt to exploit the conversion pipeline;
         </li>
         <li>
-          circumvent plan limits, rate limits or authentication, including by
-          automating guest sessions;
+          circumvent the service limits or rate limits, including by automating
+          requests to reset them;
         </li>
-        <li>
-          place disproportionate load on the platform, or resell access without
-          a Business agreement;
-        </li>
+        <li>place disproportionate load on the platform;</li>
         <li>infringe someone else's intellectual property or privacy.</li>
       </ul>
 
-      <h2>5. Accounts</h2>
+      <h2>5. No accounts</h2>
       <p>
-        You are responsible for keeping your credentials secure and for activity
-        under your account. Tell us promptly if you suspect unauthorised access.
-        We may suspend an account that breaches these terms, with notice where
-        practical.
+        The service has no accounts. There is nothing to register for, no
+        credentials to keep secure and no profile we hold about you. Everyone
+        who opens the site gets the same service on the same terms.
       </p>
 
       <h2>6. Service limits</h2>
@@ -89,9 +85,8 @@ export default function TermsPage() {
 
       <h2>7. Availability</h2>
       <p>
-        We aim for continuous availability but do not promise it on free plans.
-        Maintenance, upstream provider incidents and abuse mitigation may
-        interrupt service. Business agreements may include a specific SLA.
+        We aim for continuous availability but do not promise it. Maintenance,
+        upstream provider incidents and abuse mitigation may interrupt service.
       </p>
 
       <h2>8. Retention and deletion</h2>
@@ -111,8 +106,8 @@ export default function TermsPage() {
       <h2>10. Limitation of liability</h2>
       <p>
         To the extent permitted by law, our aggregate liability arising from the
-        service is limited to the amount you paid in the twelve months before
-        the claim, or USD 100 if you are on a free plan. We are not liable for
+        service is limited to USD 100. The service is free, so you have paid us
+        nothing against which to measure a larger sum. We are not liable for
         indirect, incidental or consequential damages, including lost data or
         lost profits. Nothing here excludes liability that cannot lawfully be
         excluded.
@@ -120,16 +115,17 @@ export default function TermsPage() {
 
       <h2>11. Termination</h2>
       <p>
-        You may stop using the service and delete your account at any time. We
-        may terminate access for a material breach of these terms. On
+        You may stop using the service at any time; there is no account to
+        close. We may terminate access for a material breach of these terms. On
         termination, your stored files are deleted.
       </p>
 
       <h2>12. Changes</h2>
       <p>
         We may update these terms. Material changes will be announced with the
-        updated date above and, for account holders, by email. Continued use
-        after a change means you accept it.
+        updated date above; with no accounts there is no mailing list to
+        announce them on, so this page is the notice. Continued use after a
+        change means you accept it.
       </p>
 
       <h2>13. Contact</h2>

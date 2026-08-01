@@ -2,7 +2,6 @@
 
 import type { ReactNode } from 'react';
 
-import { AuthProvider } from '@/components/providers/auth-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -10,9 +9,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
-      </AuthProvider>
+      <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
     </ThemeProvider>
   );
 }

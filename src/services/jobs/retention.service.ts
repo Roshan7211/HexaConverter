@@ -1,8 +1,5 @@
 import 'server-only';
 
-import * as audit from '@/database/repositories/audit.repository';
-import * as authTokens from '@/database/repositories/auth-token.repository';
-import * as notifications from '@/database/repositories/notification.repository';
 import * as queue from '@/database/repositories/job-queue.repository';
 import { logger } from '@/lib/logger';
 import { storage } from '@/services/storage';
@@ -15,10 +12,8 @@ import { purgeExpiredSessions } from '@/services/upload/session.service';
  * is a scheduled job rather than a best-effort cleanup on request paths.
  */
 
-/** Guest job rows are removed once their files are long gone. */
-const GUEST_HISTORY_DAYS = 30;
-const AUDIT_RETENTION_DAYS = 365;
-const NOTIFICATION_RETENTION_DAYS = 90;
+/** Job rows are removed once their files are long gone. */
+const JOB_HISTORY_DAYS = 30;
 
 export interface PurgeSummary {
   jobsExpired: number;
@@ -27,7 +22,8 @@ export interface PurgeSummary {
 
 /**
  * Deletes stored files past their retention window and marks the owning jobs
- * expired. Rows are kept without file references, so users keep their history.
+ * expired. The rows themselves are cleared of file references here and removed
+ * outright by the sweep below.
  */
 export async function purgeExpiredFiles(
   batchSize = 500,
@@ -51,13 +47,10 @@ export async function purgeExpiredFiles(
 }
 
 export interface CleanupSummary extends PurgeSummary {
-  guestRowsRemoved: number;
-  auditRowsRemoved: number;
-  notificationsRemoved: number;
+  /** Job rows removed once their files were long gone. */
+  jobRowsRemoved: number;
   /** Chunked uploads abandoned before they were completed. */
   uploadSessionsPurged: number;
-  /** Spent and expired password-reset and verification links. */
-  authTokensRemoved: number;
 }
 
 /** The full retention pass invoked by the cleanup cron. */
@@ -69,29 +62,16 @@ export async function runRetentionPass(
   const daysAgo = (days: number) =>
     new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-  const guestHistory = await queue.deleteGuestHistoryBefore(
-    daysAgo(GUEST_HISTORY_DAYS),
-  );
-  const auditLogs = await audit.pruneOlderThan(daysAgo(AUDIT_RETENTION_DAYS));
-  const staleNotifications = await notifications.pruneOlderThan(
-    daysAgo(NOTIFICATION_RETENTION_DAYS),
-  );
+  const history = await queue.deleteHistoryBefore(daysAgo(JOB_HISTORY_DAYS));
 
   // Abandoned chunked uploads leave their pieces in storage; they are not
   // attached to any job, so only this sweep will ever reclaim them.
   const uploadSessions = await purgeExpiredSessions();
 
-  // Dead link secrets are of no use to us and of some use to an attacker who
-  // gets a copy of the table, so they do not linger.
-  const spentTokens = await authTokens.pruneExpired();
-
   const summary: CleanupSummary = {
     ...purged,
+    jobRowsRemoved: history.count,
     uploadSessionsPurged: uploadSessions,
-    guestRowsRemoved: guestHistory.count,
-    auditRowsRemoved: auditLogs.count,
-    notificationsRemoved: staleNotifications.count,
-    authTokensRemoved: spentTokens.count,
   };
 
   logger.info('Retention pass finished', { ...summary });

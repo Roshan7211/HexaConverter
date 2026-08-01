@@ -455,9 +455,8 @@ export function PdfWorkspace({ operation }: { operation: PdfOperation }) {
       ) : null}
 
       <p className="text-xs text-muted-foreground">
-        Files are processed on our servers and deleted automatically —{' '}
-        {limits.retentionHours} hour{limits.retentionHours === 1 ? '' : 's'} on
-        the {limits.plan} plan.{' '}
+        Files are processed on our servers and deleted automatically after{' '}
+        {limits.retentionHours} hour{limits.retentionHours === 1 ? '' : 's'}.{' '}
         <Link
           href="/legal/privacy"
           className="text-primary underline-offset-4 hover:underline"

@@ -1,7 +1,7 @@
-import { errors, ok } from '@/api/responses';
+import { ok } from '@/api/responses';
 import { enforceRateLimit } from '@/middleware/with-rate-limit';
 import { withErrorHandling } from '@/middleware/with-error-handling';
-import { resolveRequester } from '@/services/auth/identity.service';
+import { resolveRequester } from '@/services/identity/identity.service';
 import { purgeOwnedFiles } from '@/services/jobs/job.service';
 
 /**
@@ -15,14 +15,12 @@ import { purgeOwnedFiles } from '@/services/jobs/job.service';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export const DELETE = withErrorHandling('DELETE /api/storage', async (request) => {
-  const limited = enforceRateLimit('job', request);
-  if (limited) return limited;
+export const DELETE = withErrorHandling(
+  'DELETE /api/storage',
+  async (request) => {
+    const limited = enforceRateLimit('job', request);
+    if (limited) return limited;
 
-  const requester = await resolveRequester();
-  if (!requester.userId && !requester.guestId) {
-    return errors.forbidden('There are no files to delete.');
-  }
-
-  return ok(await purgeOwnedFiles(requester));
-});
+    return ok(await purgeOwnedFiles(await resolveRequester()));
+  },
+);

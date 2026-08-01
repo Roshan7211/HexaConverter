@@ -3,7 +3,7 @@ import { pdfTaskSchema } from '@/api/schemas';
 import { enforceRateLimit } from '@/middleware/with-rate-limit';
 import { withErrorHandling } from '@/middleware/with-error-handling';
 import { parseJsonBody } from '@/middleware/with-validation';
-import { resolveRequester } from '@/services/auth/identity.service';
+import { resolveRequester } from '@/services/identity/identity.service';
 import { createDocumentTask } from '@/services/documents/document-task.service';
 
 /**

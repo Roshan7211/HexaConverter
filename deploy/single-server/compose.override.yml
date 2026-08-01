@@ -1,0 +1,75 @@
+# Single-server overlay for `docker-compose.prod.yml`.
+#
+#   docker compose \
+#     -f docker-compose.prod.yml \
+#     -f deploy/single-server/compose.override.yml \
+#     --env-file .env.production up -d --build
+#
+# The base file is written for the normal production shape: a prebuilt image
+# pulled from a registry, and managed Postgres owned by someone whose job is
+# backups. One box behind one domain — a Fasthosts Cloud Server, a Hetzner VPS —
+# needs three things that shape does not provide, and this layer adds exactly
+# those and nothing else:
+#
+#   1. Build the image here, since there is no registry in the loop.
+#   2. Run Postgres alongside the app, on a named volume.
+#   3. Give the app a persistent volume for converted files. Without this,
+#      `STORAGE_DRIVER=local` writes inside the container's writable layer and
+#      every output is destroyed on the next deploy.
+#
+# Adding a second app server invalidates this file: a local directory is not
+# shared between hosts, so move to S3 (`STORAGE_DRIVER=s3`) before scaling out.
+
+x-build: &build
+  build:
+    context: .
+    args:
+      # Inlined into the client bundle at build time, so it is a build arg and
+      # not an environment variable. Changing it needs a rebuild, not a restart.
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?set NEXT_PUBLIC_APP_URL in .env.production}
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-HexaConverter}
+
+x-storage: &storage
+  volumes:
+    - storage:${STORAGE_LOCAL_DIR:-/var/lib/hexaconverter/storage}
+
+services:
+  migrate:
+    <<: *build
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    <<: [*build, *storage]
+
+  # The worker writes every converted file, so it needs the same volume mounted
+  # at the same path — the web tier serves downloads from it.
+  worker:
+    <<: [*build, *storage]
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hexa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+      POSTGRES_DB: ${POSTGRES_DB:-hexaconverter}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    # No published port: reachable only from the compose network. Exposing 5432
+    # to the host would put the database on the public internet.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-hexa}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+volumes:
+  storage:
+  postgres-data:

@@ -2,7 +2,7 @@ import { errors, ok } from '@/api/responses';
 import { withErrorHandling } from '@/middleware/with-error-handling';
 import { enforceRateLimit } from '@/middleware/with-rate-limit';
 import { targetsFor } from '@/services/conversion/registry';
-import { resolveRequester } from '@/services/auth/identity.service';
+import { resolveRequester } from '@/services/identity/identity.service';
 import { logger } from '@/lib/logger';
 import { clientIp, hashIp, signUploadTicket } from '@/lib/security';
 import {
@@ -49,9 +49,7 @@ export const POST = withErrorHandling('POST /api/uploads', async (request) => {
   const declaredSize = Number(request.headers.get('content-length') ?? '0');
   if (declaredSize > requester.limits.maxFileBytes) {
     return errors.payloadTooLarge(
-      requester.isAuthenticated
-        ? `Files up to ${formatMb(requester.limits.maxFileBytes)} are included in the ${requester.limits.label} plan.`
-        : `Guest uploads are limited to ${formatMb(requester.limits.maxFileBytes)}. Create a free account to raise the limit.`,
+      `Uploads are limited to ${formatMb(requester.limits.maxFileBytes)} per file.`,
     );
   }
 
@@ -92,7 +90,6 @@ export const POST = withErrorHandling('POST /api/uploads', async (request) => {
     logger.info('Upload accepted', {
       sourceFormat: upload.sourceFormat,
       size: upload.size,
-      authenticated: requester.isAuthenticated,
       ipHash: hashIp(clientIp(request.headers)),
     });
 

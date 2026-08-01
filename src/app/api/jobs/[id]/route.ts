@@ -1,7 +1,7 @@
 import { errors, ok } from '@/api/responses';
 import { enforceRateLimit } from '@/middleware/with-rate-limit';
 import { withErrorHandling } from '@/middleware/with-error-handling';
-import { resolveRequester } from '@/services/auth/identity.service';
+import { resolveRequester } from '@/services/identity/identity.service';
 import { deleteOwnedJob, getOwnedJob } from '@/services/jobs/job.service';
 
 /**

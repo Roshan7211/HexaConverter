@@ -11,7 +11,7 @@ import {
   checkQuota,
   retentionDate,
   type Requester,
-} from '@/services/auth/identity.service';
+} from '@/services/identity/identity.service';
 import { routeAvailability } from '@/services/conversion/conversion.service';
 import { defaultOptionsFor, parseOptions } from '@/services/conversion/options';
 import {
@@ -228,7 +228,7 @@ export async function createConversionJob(
   }
 
   const row = await jobs.create({
-    owner: { userId: requester.userId, guestId: requester.guestId },
+    owner: { guestId: requester.guestId },
     category: toPrismaCategory(sourceSpec.category),
     sourceFormat: ticket.sourceFormat,
     targetFormat,

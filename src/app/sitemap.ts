@@ -8,7 +8,7 @@ import { SITE } from '@/lib/seo';
 
 /**
  * Sitemap covering every indexable route, including one entry per conversion
- * landing page. Authenticated and API routes are deliberately excluded.
+ * landing page. API routes are deliberately excluded.
  */
 
 export const revalidate = 86400;
@@ -49,12 +49,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.4,
     },
     {
-      url: url('/sign-up'),
-      lastModified: now,
-      changeFrequency: 'yearly',
-      priority: 0.5,
-    },
-    {
       url: url('/legal/privacy'),
       lastModified: now,
       changeFrequency: 'yearly',
@@ -68,12 +62,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: url('/legal/cookies'),
-      lastModified: now,
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
-    {
-      url: url('/legal/account-deletion'),
       lastModified: now,
       changeFrequency: 'yearly',
       priority: 0.3,

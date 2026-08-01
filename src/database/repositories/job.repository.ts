@@ -43,14 +43,13 @@ export type JobRow = Prisma.ConversionJobGetPayload<{
   select: typeof jobSelect;
 }>;
 
-/** Scopes a query to a single owner — a user id or an anonymous guest id. */
+/** Scopes a query to a single owner — the opaque guest id of one browser. */
 export interface OwnerScope {
-  userId: string | null;
-  guestId: string | null;
+  guestId: string;
 }
 
 export function ownerFilter(owner: OwnerScope): Prisma.ConversionJobWhereInput {
-  return owner.userId ? { userId: owner.userId } : { guestId: owner.guestId! };
+  return { guestId: owner.guestId };
 }
 
 export function findOwned(id: string, owner: OwnerScope) {
@@ -138,7 +137,6 @@ export interface CreateJobData {
 export function create(data: CreateJobData) {
   return prisma.conversionJob.create({
     data: {
-      userId: data.owner.userId,
       guestId: data.owner.guestId,
       status: JobStatus.QUEUED,
       category: data.category,

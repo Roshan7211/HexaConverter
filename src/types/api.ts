@@ -27,8 +27,6 @@ export interface UploadResponse {
 }
 
 export interface LimitsResponse {
-  plan: string;
-  authenticated: boolean;
   maxFileBytes: number;
   maxBatchFiles: number;
   retentionHours: number;

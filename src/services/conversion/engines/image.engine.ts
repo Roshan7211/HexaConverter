@@ -1,6 +1,8 @@
 import { open, readFile, writeFile } from 'node:fs/promises';
 
-import sharp from 'sharp';
+// sharp 0.35 resolves to ESM type declarations, where `Sharp` and `Metadata`
+// are named exports rather than members of a `sharp` namespace.
+import sharp, { type Metadata, type Sharp } from 'sharp';
 
 import { decodeBmp, encodeBmp, isBmp } from '@/services/conversion/codecs/bmp';
 import { logger } from '@/lib/logger';
@@ -37,7 +39,7 @@ async function openSource(
   sourceFormat: string,
   animated: boolean,
   density: number | undefined,
-): Promise<sharp.Sharp> {
+): Promise<Sharp> {
   if (sourceFormat === 'bmp') {
     const buffer = await readFile(inputPath);
     if (!isBmp(buffer)) {
@@ -134,7 +136,7 @@ export const imageEngine: ConversionEngine = {
         : undefined,
     );
 
-    let metadata: sharp.Metadata;
+    let metadata: Metadata;
     try {
       metadata = await pipeline.metadata();
     } catch (error) {

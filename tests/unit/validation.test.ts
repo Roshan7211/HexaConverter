@@ -2,21 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { defaultOptionsFor, parseOptions } from '@/services/conversion/options';
 import { CONVERSION_ROUTES } from '@/services/conversion/registry';
-import {
-  contactSchema,
-  nameSchema,
-  passwordSchema,
-  registerSchema,
-} from '@/api/schemas';
-
-describe('password policy', () => {
-  it('requires length and a number or symbol', () => {
-    expect(passwordSchema.safeParse('short1').success).toBe(false);
-    expect(passwordSchema.safeParse('allletterspassword').success).toBe(false);
-    expect(passwordSchema.safeParse('correct horse 7').success).toBe(true);
-    expect(passwordSchema.safeParse('correct-horse!').success).toBe(true);
-  });
-});
+import { contactSchema, nameSchema } from '@/api/schemas';
 
 describe('name validation', () => {
   it('accepts ordinary names including spaces and accents', () => {
@@ -35,31 +21,19 @@ describe('name validation', () => {
   });
 });
 
-describe('registration', () => {
+describe('contact form', () => {
   it('normalises the email address', () => {
-    const result = registerSchema.safeParse({
+    const result = contactSchema.safeParse({
       name: 'Ada Lovelace',
       email: '  ADA@Example.COM ',
-      password: 'analytical-engine-1',
-      acceptTerms: true,
+      subject: 'Question',
+      message: 'This message is definitely long enough to pass validation.',
     });
 
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.email).toBe('ada@example.com');
   });
 
-  it('requires the terms checkbox', () => {
-    const result = registerSchema.safeParse({
-      name: 'Ada Lovelace',
-      email: 'ada@example.com',
-      password: 'analytical-engine-1',
-      acceptTerms: false,
-    });
-    expect(result.success).toBe(false);
-  });
-});
-
-describe('contact form', () => {
   it('enforces a minimum message length', () => {
     const base = {
       name: 'Ada Lovelace',

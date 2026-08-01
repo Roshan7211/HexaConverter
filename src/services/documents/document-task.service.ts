@@ -11,7 +11,7 @@ import {
   checkQuota,
   retentionDate,
   type Requester,
-} from '@/services/auth/identity.service';
+} from '@/services/identity/identity.service';
 import { ensureWorker } from '@/services/jobs/worker';
 import { toPrismaCategory } from '@/services/jobs/job.service';
 import { storage } from '@/services/storage';
@@ -133,7 +133,7 @@ export async function createDocumentTask(
   const [primary, ...extra] = files;
 
   const row = await jobs.create({
-    owner: { userId: requester.userId, guestId: requester.guestId },
+    owner: { guestId: requester.guestId },
     category: toPrismaCategory('document'),
     sourceFormat: 'pdf',
     // Split may emit a ZIP; the worker records the real output type when it

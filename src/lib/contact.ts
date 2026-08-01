@@ -9,4 +9,4 @@
  *
  * Keep in step with `CONTACT_INBOX`, which is where the contact form delivers.
  */
-export const SUPPORT_EMAIL = 'support@hexaconverter.app';
+export const SUPPORT_EMAIL = 'info@hexaconverter.com';

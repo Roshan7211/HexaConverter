@@ -250,7 +250,7 @@ export function Converter({
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <ShieldCheck className="size-3.5 text-success" aria-hidden="true" />
         <span>
-          {limits.plan} · up to {limits.maxBatchFiles} file
+          Free · up to {limits.maxBatchFiles} file
           {limits.maxBatchFiles === 1 ? '' : 's'} ·{' '}
           {formatBytes(limits.maxFileBytes, 0)} each · files deleted
           automatically after {limits.retentionHours} hour

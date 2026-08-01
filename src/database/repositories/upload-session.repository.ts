@@ -11,12 +11,11 @@ import { prisma } from '@/database/client';
  */
 
 export interface SessionOwner {
-  userId: string | null;
-  guestId: string | null;
+  guestId: string;
 }
 
 function ownerFilter(owner: SessionOwner) {
-  return owner.userId ? { userId: owner.userId } : { guestId: owner.guestId! };
+  return { guestId: owner.guestId };
 }
 
 export interface CreateSessionData {
@@ -34,7 +33,6 @@ export interface CreateSessionData {
 export function create(data: CreateSessionData) {
   return prisma.uploadSession.create({
     data: {
-      userId: data.owner.userId,
       guestId: data.owner.guestId,
       filename: data.filename,
       sourceFormat: data.sourceFormat,

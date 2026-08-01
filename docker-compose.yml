@@ -68,9 +68,7 @@ services:
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXT_PUBLIC_APP_NAME: HexaConverter
       DATABASE_URL: postgresql://hexa:hexa@postgres:5432/hexaconverter?schema=public
-      NEXTAUTH_URL: http://localhost:3000
       # Replace every secret below before exposing this stack to a network.
-      NEXTAUTH_SECRET: local-development-secret-value-change-me-32
       DOWNLOAD_URL_SECRET: local-development-download-secret-change-me-32
       CRON_SECRET: local-development-cron-secret
       STORAGE_DRIVER: s3

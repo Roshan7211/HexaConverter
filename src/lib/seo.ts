@@ -13,6 +13,15 @@ import { clientEnv } from '@/lib/env';
 export const SITE = {
   name: clientEnv.appName,
   url: clientEnv.appUrl,
+  /**
+   * The published domain, for legal copy that must name one stable address.
+   *
+   * Deliberately a constant rather than `url`: canonical URLs follow the
+   * deployment, so `url` is `localhost` in development and a preview host in
+   * CI. A privacy policy that named either would be wrong, and one rendered
+   * from an unset variable would be blank — which Google Play rejects.
+   */
+  domain: 'www.hexaconverter.com',
   tagline: 'Convert any file, right in your browser',
   description:
     'Convert documents, images, video, audio and archives online. Fast, private and free to start — no software to install, no watermarks, and files are deleted automatically.',
@@ -115,7 +124,7 @@ export function webApplicationSchema() {
       '@type': 'Offer',
       price: '0',
       priceCurrency: 'USD',
-      description: 'Free to use, with no paid tier and no account required',
+      description: 'Free to use, with no paid tier and no account',
     },
   };
 }

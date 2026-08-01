@@ -4,7 +4,7 @@ import { enforceRateLimit } from '@/middleware/with-rate-limit';
 import { logger } from '@/lib/logger';
 import { clientIp, hashIp, signUploadTicket } from '@/lib/security';
 import { targetsFor } from '@/services/conversion/registry';
-import { resolveRequester } from '@/services/auth/identity.service';
+import { resolveRequester } from '@/services/identity/identity.service';
 import { completeSession } from '@/services/upload/session.service';
 import {
   InfectedUploadError,
@@ -40,10 +40,7 @@ export const POST = withErrorHandling(
     const requester = await resolveRequester();
 
     try {
-      const upload = await completeSession(id, {
-        userId: requester.userId,
-        guestId: requester.guestId,
-      });
+      const upload = await completeSession(id, { guestId: requester.guestId });
 
       const ticket = signUploadTicket({
         key: upload.key,
@@ -58,7 +55,6 @@ export const POST = withErrorHandling(
       logger.info('Chunked upload accepted', {
         sourceFormat: upload.sourceFormat,
         size: upload.size,
-        authenticated: requester.isAuthenticated,
         ipHash: hashIp(clientIp(request.headers)),
       });
 

@@ -9,7 +9,6 @@ import { ChevronDown, Menu, X } from 'lucide-react';
 
 import { Logo } from '@/components/layout/logo';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
-import { UserMenu } from '@/components/layout/user-menu';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -159,9 +158,6 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <div className="hidden sm:block">
-            <UserMenu />
-          </div>
 
           <Button
             variant="ghost"
@@ -234,10 +230,6 @@ export function SiteHeader() {
                 {link.label}
               </Link>
             ))}
-
-            <div className="mt-4 border-t pt-4 sm:hidden">
-              <UserMenu />
-            </div>
           </nav>
         </div>
       ) : null}

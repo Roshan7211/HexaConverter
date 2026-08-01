@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { toast } from 'sonner';
 
-import { createPdfTask } from '@/api/client/dashboard.client';
+import { createPdfTask } from '@/api/client/documents.client';
 import { getJob } from '@/api/client/jobs.client';
 import { uploadFile } from '@/api/client/uploads.client';
 import { fileExtension } from '@/utils';

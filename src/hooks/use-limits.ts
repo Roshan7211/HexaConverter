@@ -3,26 +3,24 @@
 import useSWR from 'swr';
 
 import { getLimits } from '@/api/client/limits.client';
-import { UNIVERSAL_LIMITS } from '@/lib/plans';
+import { LIMITS } from '@/lib/plans';
 import type { LimitsResponse } from '@/types/api';
 
 /**
- * Effective limits for the current visitor.
+ * Limits for the current visitor.
  *
  * Converter pages are statically generated, so they render from this constant
- * and confirm it once the request resolves. Since the allowance is now the same
- * for everyone, the fallback is the real answer rather than a conservative
+ * and confirm it once the request resolves. The allowance is the same for
+ * everyone, so the fallback is the real answer rather than a conservative
  * guess — only `usage` can differ.
  */
 
 const FALLBACK: LimitsResponse = {
-  plan: 'Free',
-  authenticated: false,
-  maxFileBytes: UNIVERSAL_LIMITS.maxFileBytes,
-  maxBatchFiles: UNIVERSAL_LIMITS.maxBatchFiles,
-  retentionHours: UNIVERSAL_LIMITS.retentionHours,
-  concurrentJobs: UNIVERSAL_LIMITS.concurrentJobs,
-  usage: { used: 0, limit: UNIVERSAL_LIMITS.jobsPerPeriod },
+  maxFileBytes: LIMITS.maxFileBytes,
+  maxBatchFiles: LIMITS.maxBatchFiles,
+  retentionHours: LIMITS.retentionHours,
+  concurrentJobs: LIMITS.concurrentJobs,
+  usage: { used: 0, limit: LIMITS.jobsPerPeriod },
 };
 
 export function useLimits(): { limits: LimitsResponse; isLoading: boolean } {

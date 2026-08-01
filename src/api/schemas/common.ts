@@ -10,17 +10,6 @@ export const emailSchema = z
   .email('Enter a valid email address')
   .transform((value) => value.toLowerCase());
 
-export const passwordSchema = z
-  .string()
-  .min(10, 'Use at least 10 characters')
-  .max(128, 'Use at most 128 characters')
-  .refine((value) => /[a-zA-Z]/.test(value), {
-    message: 'Include at least one letter',
-  })
-  .refine((value) => /[0-9]/.test(value) || /[^a-zA-Z0-9]/.test(value), {
-    message: 'Include at least one number or symbol',
-  });
-
 /** True when a string contains C0 control characters or DEL. */
 function hasControlCharacters(value: string): boolean {
   for (let index = 0; index < value.length; index += 1) {

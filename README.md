@@ -53,9 +53,7 @@ Layout:
 | ------------------------------- | ------------------------------------------------------------- |
 | `src/app/(site)/(marketing)`    | Home, features, FAQ, about, contact                           |
 | `src/app/(site)/(tools)`        | Category converters and one landing page per conversion route |
-| `src/app/(site)/(auth)`         | Sign in, sign up, password reset, email confirmation          |
 | `src/app/(site)/legal`          | Privacy, terms, cookies                                       |
-| `src/app/(app)`                 | Authenticated dashboard, profile and settings                 |
 | `src/app/api`                   | Route handlers                                                |
 | `src/services/conversion`       | Format registry, option schemas and the five engines          |
 | `src/services/documents`        | PDF rasterising, text extraction and the Word writer          |
@@ -92,8 +90,7 @@ git clone <repository-url> hexaconverter && cd hexaconverter
 npm install
 
 cp .env.example .env
-# Generate the two secrets:
-#   openssl rand -base64 32   -> NEXTAUTH_SECRET
+# Generate the secrets:
 #   openssl rand -hex 32      -> DOWNLOAD_URL_SECRET and CRON_SECRET
 
 # Start PostgreSQL (or point DATABASE_URL at an existing instance)
@@ -138,21 +135,17 @@ rather than misbehaving later. The essentials:
 | Variable                     | Purpose                                                    |
 | ---------------------------- | ---------------------------------------------------------- |
 | `DATABASE_URL`               | PostgreSQL connection string                               |
-| `NEXTAUTH_SECRET`            | Session signing key (32+ chars)                            |
 | `DOWNLOAD_URL_SECRET`        | HMAC key for download links and upload tickets (32+ chars) |
 | `CRON_SECRET`                | Bearer token for `/api/cron/*`                             |
 | `STORAGE_DRIVER`             | `local` in development, `s3` in production                 |
 | `S3_*`                       | Bucket, credentials and endpoint for S3-compatible storage |
-| `MAX_UPLOAD_BYTES`           | Hard ceiling applied before any plan limit                 |
+| `MAX_UPLOAD_BYTES`           | Hard ceiling applied before the service limit              |
 | `WORKER_ENABLED`             | Whether this instance processes jobs                       |
-| `SMTP_*`                     | Outbound mail; also carries reset and confirmation links   |
-| `REQUIRE_EMAIL_VERIFICATION` | Refuse password sign-in until the address is confirmed     |
+| `SMTP_*`                     | Outbound mail for the contact form                         |
 
 A production build refuses `STORAGE_DRIVER=local` unless you explicitly set
 `ALLOW_LOCAL_STORAGE_IN_PRODUCTION=true`, which is appropriate only for a single
-instance backed by a persistent volume. Likewise, startup refuses
-`REQUIRE_EMAIL_VERIFICATION=true` without `SMTP_HOST`: with no way to send the
-link, no new account could ever sign in.
+instance backed by a persistent volume.
 
 ## Conversion engines
 
@@ -174,7 +167,7 @@ respects an `AbortSignal` so a cancelled job stops its encoder immediately.
 1. **Upload.** The raw request body is streamed to storage. Before the first
    byte is forwarded, the leading bytes are read and the container is
    identified from its magic number and checked against the declared extension.
-   The running byte count is enforced against the plan limit, so a lying
+   The running byte count is enforced against the service limit, so a lying
    `Content-Length` cannot bypass it. The response is a **signed upload ticket**
    containing the storage key, size, MIME type and owner.
 2. **Queue.** `POST /api/jobs` trusts only what is inside the ticket, so a
@@ -204,16 +197,13 @@ respects an `AbortSignal` so a cancelled job stops its encoder immediately.
   spreadsheets and a wall-clock timeout on every external process.
 - **Signed, short-lived links** — download tokens are HMAC-bound to one job and
   expire in minutes; upload tickets are bound to one owner.
-- **Ownership scoping** — every job query is filtered by user id or the
-  anonymous guest cookie, so ids cannot be enumerated.
+- **Ownership scoping** — every job query is filtered by the anonymous guest
+  cookie, so ids cannot be enumerated.
 - **Isolation** — LibreOffice runs with a private user profile per job and a
   temporary `HOME`; each conversion gets a fresh directory that is always
   removed, including on failure.
 - **Transport and headers** — HSTS, a restrictive CSP, `nosniff`,
   `frame-ancestors 'none'`, and a same-origin check on all mutating API calls.
-- **Credentials** — bcrypt at cost 12, a dummy-hash comparison for unknown
-  accounts so response timing does not reveal registration, and a registration
-  endpoint that cannot be used to enumerate addresses.
 - **Privacy** — image metadata (including GPS) is stripped by default, and IP
   addresses are stored only as salted hashes.
 
@@ -231,17 +221,12 @@ See [SECURITY.md](SECURITY.md) for reporting a vulnerability.
 | `DELETE` | `/api/jobs/:id`                 | Delete a conversion and its files               |
 | `GET`    | `/api/jobs/:id/download`        | Download with a signed token                    |
 | `GET`    | `/api/formats`                  | Formats and routes available on this deploy     |
-| `GET`    | `/api/limits`                   | Effective limits for the caller                 |
+| `GET`    | `/api/limits`                   | Limits and remaining allowance for the caller   |
+| `POST`   | `/api/tools/pdf`                | Queue a PDF toolkit task                        |
+| `POST`   | `/api/tools/archive`            | Queue an archive toolkit task                   |
+| `DELETE` | `/api/storage`                  | Delete every file stored for this browser       |
 | `GET`    | `/api/health`                   | Readiness probe (503 when a dependency is down) |
 | `POST`   | `/api/contact`                  | Contact form                                    |
-| `PATCH`  | `/api/account`                  | Update name or password                         |
-| `DELETE` | `/api/account`                  | Erase the account and all files                 |
-| `DELETE` | `/api/account/sessions`         | Sign out on every device                        |
-| `POST`   | `/api/auth/register`            | Create an account                               |
-| `POST`   | `/api/auth/forgot-password`     | Request a password reset link                   |
-| `POST`   | `/api/auth/reset-password`      | Redeem a reset link and set a new password      |
-| `POST`   | `/api/auth/verify-email`        | Confirm an email address                        |
-| `POST`   | `/api/auth/resend-verification` | Send a fresh confirmation link                  |
 
 Example:
 
@@ -306,7 +291,7 @@ Checklist for a real deployment:
 
 1. `STORAGE_DRIVER=s3` with a private bucket, server-side encryption and a
    lifecycle rule matching your longest retention window.
-2. Fresh `NEXTAUTH_SECRET`, `DOWNLOAD_URL_SECRET` and `CRON_SECRET`.
+2. Fresh `DOWNLOAD_URL_SECRET` and `CRON_SECRET`.
 3. `npx prisma migrate deploy` on release (the compose file does this on start).
 4. Point your load balancer's health check at `/api/health`.
 5. Schedule the cron endpoints (below).

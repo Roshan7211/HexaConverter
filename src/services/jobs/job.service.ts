@@ -4,7 +4,7 @@ import { JobStatus, type Prisma } from '@prisma/client';
 
 import { toJobDto, type JobDto } from '@/api/dto/job.dto';
 import * as jobs from '@/database/repositories/job.repository';
-import type { Requester } from '@/services/auth/identity.service';
+import type { Requester } from '@/services/identity/identity.service';
 import { logger } from '@/lib/logger';
 import { storage } from '@/services/storage';
 import type { Category } from '@/types/conversion';
@@ -30,7 +30,7 @@ export function toPrismaCategory(category: Category): FileCategory {
 }
 
 function scope(requester: Requester): jobs.OwnerScope {
-  return { userId: requester.userId, guestId: requester.guestId };
+  return { guestId: requester.guestId };
 }
 
 export async function getOwnedJob(

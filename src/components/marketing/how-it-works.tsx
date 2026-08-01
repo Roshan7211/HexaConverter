@@ -43,8 +43,8 @@ export function HowItWorks() {
             Three steps, no account needed
           </h2>
           <p className="mt-4 text-pretty text-muted-foreground">
-            Every feature and every limit is the same whether you sign in or
-            not. An account just remembers what you have converted.
+            There is nothing to sign up for. Every feature and every limit is
+            the same for everyone who opens the page.
           </p>
         </Reveal>
 

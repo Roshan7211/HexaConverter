@@ -148,7 +148,6 @@ Rotation, and what each rotation costs:
 
 | Secret                | On rotation                                                     |
 | --------------------- | --------------------------------------------------------------- |
-| `NEXTAUTH_SECRET`     | Every session invalidated; everyone signs in again              |
 | `DOWNLOAD_URL_SECRET` | Outstanding download links break; upload tickets in flight fail |
 | `CRON_SECRET`         | Update the scheduler in the same change                         |
 | Database password     | Percent-encode it, update `DATABASE_URL` **and** `DIRECT_URL`   |
@@ -245,11 +244,8 @@ object with no row is swept by the lifecycle rule.
 ### Compromised secrets
 
 1. Rotate the leaked secret **first**; understand the blast radius after.
-2. `NEXTAUTH_SECRET` — rotating it signs everyone out, which is the point.
+2. `DOWNLOAD_URL_SECRET` — rotating it invalidates every outstanding download
+   link and upload ticket, which is the point.
 3. Database password — rotate at the provider, re-encode, update both URLs.
-4. Consider bumping `sessionsValidFrom` for all users to force re-authentication:
-   ```sql
-   UPDATE "User" SET "sessionsValidFrom" = now();
-   ```
-5. Review `AuditLog` for the affected window — it records actor, action and a
-   salted IP hash, and is retained a year.
+4. Review the application log for the affected window. There are no accounts to
+   sign out and no sessions to revoke.

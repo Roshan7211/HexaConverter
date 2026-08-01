@@ -47,7 +47,7 @@ export function fail(
 export const errors = {
   badRequest: (message = 'The request could not be processed.') =>
     fail(400, 'bad_request', message),
-  unauthorized: (message = 'Sign in to continue.') =>
+  unauthorized: (message = 'Valid credentials are required.') =>
     fail(401, 'unauthorized', message),
   forbidden: (message = 'You do not have access to this resource.') =>
     fail(403, 'forbidden', message),

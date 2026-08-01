@@ -21,21 +21,6 @@ const serverSchema = z
 
     DATABASE_URL: z.string().url('DATABASE_URL must be a valid database URL'),
 
-    NEXTAUTH_URL: z.string().url().optional(),
-    NEXTAUTH_SECRET: z
-      .string()
-      .min(32, 'NEXTAUTH_SECRET must be at least 32 characters'),
-
-    GOOGLE_CLIENT_ID: z.string().optional(),
-    GOOGLE_CLIENT_SECRET: z.string().optional(),
-    GITHUB_CLIENT_ID: z.string().optional(),
-    GITHUB_CLIENT_SECRET: z.string().optional(),
-
-    // Refuses sign-in until the address is confirmed. Off by default because
-    // it is only safe once outbound mail is known to work — see the SMTP check
-    // in `superRefine`, which stops the two settings drifting apart.
-    REQUIRE_EMAIL_VERIFICATION: booleanish.default('false'),
-
     DOWNLOAD_URL_SECRET: z
       .string()
       .min(32, 'DOWNLOAD_URL_SECRET must be at least 32 characters'),
@@ -88,8 +73,10 @@ const serverSchema = z
     SMTP_PORT: z.coerce.number().int().positive().default(587),
     SMTP_USER: z.string().optional(),
     SMTP_PASSWORD: z.string().optional(),
-    MAIL_FROM: z.string().default('no-reply@hexaconverter.app'),
-    CONTACT_INBOX: z.string().default('support@hexaconverter.app'),
+    MAIL_FROM: z.string().default('no-reply@hexaconverter.com'),
+    // Must match SUPPORT_EMAIL in `lib/contact.ts`, which is what the privacy
+    // policy publishes: mail sent to the advertised address has to arrive.
+    CONTACT_INBOX: z.string().default('info@hexaconverter.com'),
   })
   .superRefine((value, ctx) => {
     if (value.STORAGE_DRIVER === 's3') {
@@ -106,18 +93,6 @@ const serverSchema = z
           });
         }
       }
-    }
-
-    // Enforcing verification without a way to send the mail locks every new
-    // account out permanently, so the two are required to agree.
-    if (value.REQUIRE_EMAIL_VERIFICATION && !value.SMTP_HOST) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['REQUIRE_EMAIL_VERIFICATION'],
-        message:
-          'REQUIRE_EMAIL_VERIFICATION needs SMTP_HOST set, otherwise verification ' +
-          'emails cannot be delivered and new accounts can never sign in',
-      });
     }
 
     if (
@@ -160,9 +135,33 @@ export function serverEnv(): ServerEnv {
   return cached;
 }
 
-/** Client-safe configuration, inlined at build time. */
+/**
+ * Client-safe configuration, inlined at build time.
+ *
+ * `NEXT_PUBLIC_*` values are substituted by the bundler, so an unset variable
+ * cannot be caught later at runtime — it is already baked into every page. A
+ * production build that fell back to `localhost` would publish canonical URLs,
+ * a sitemap and Open Graph tags all pointing at a machine nobody can reach,
+ * and the first sign of it would be the pages failing to rank. Fail the build
+ * instead: it is the last moment the mistake is still cheap.
+ */
+function resolveAppUrl(): string {
+  const value = process.env.NEXT_PUBLIC_APP_URL;
+  if (value) return value.replace(/\/+$/, '');
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'NEXT_PUBLIC_APP_URL must be set for a production build — it is inlined ' +
+        'at build time and drives canonical URLs, the sitemap and OG tags. ' +
+        'Set it to the public origin, e.g. https://www.hexaconverter.com',
+    );
+  }
+
+  return 'http://localhost:3000';
+}
+
 export const clientEnv = {
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
+  appUrl: resolveAppUrl(),
   appName: process.env.NEXT_PUBLIC_APP_NAME ?? 'HexaConverter',
 } as const;
 

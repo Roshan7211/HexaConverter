@@ -1,7 +1,7 @@
 import { errors, ok } from '@/api/responses';
 import { withErrorHandling } from '@/middleware/with-error-handling';
 import { enforceRateLimit } from '@/middleware/with-rate-limit';
-import { resolveRequester } from '@/services/auth/identity.service';
+import { resolveRequester } from '@/services/identity/identity.service';
 import {
   cancelSession,
   getSessionState,
@@ -35,10 +35,7 @@ export const GET = withErrorHandling(
     const { id } = await context.params;
     const requester = await resolveRequester();
 
-    const session = await getSessionState(id, {
-      userId: requester.userId,
-      guestId: requester.guestId,
-    });
+    const session = await getSessionState(id, { guestId: requester.guestId });
 
     if (!session) return errors.notFound('That upload session has expired.');
     return ok({ session });
@@ -70,7 +67,7 @@ export const PUT = withErrorHandling(
     try {
       const session = await storeChunk(
         id,
-        { userId: requester.userId, guestId: requester.guestId },
+        { guestId: requester.guestId },
         index,
         request.body,
       );
@@ -95,10 +92,7 @@ export const DELETE = withErrorHandling(
     const { id } = await context.params;
     const requester = await resolveRequester();
 
-    const cancelled = await cancelSession(id, {
-      userId: requester.userId,
-      guestId: requester.guestId,
-    });
+    const cancelled = await cancelSession(id, { guestId: requester.guestId });
 
     if (!cancelled) return errors.notFound('That upload session has expired.');
     return ok({ cancelled: true });

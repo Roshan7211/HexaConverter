@@ -37,7 +37,7 @@ it and must never reach upwards.
 │  services/       business logic — the only layer that        │
 │                  decides anything                            │
 ├──────────────────────────────────────────────────────────────┤
-│  database/       repositories, Prisma client, seed           │
+│  database/       repositories, Prisma client, health probe   │
 ├──────────────────────────────────────────────────────────────┤
 │  lib/            cross-cutting infrastructure (env, logging, │
 │                  security, rate limits, plans, SEO)          │
@@ -59,12 +59,9 @@ it and must never reach upwards.
 | `hooks/`      | `database/`, `app/`, `services/storage`, `services/jobs`    | Browser code calls the API layer, not server services       |
 | `app/`        | `@/database/client`                                         | Handlers use repositories or services, never raw Prisma     |
 
-Two documented exceptions, both asserted by the test so they cannot silently
-multiply:
+One documented exception, asserted by the test so it cannot silently multiply:
 
-1. `services/auth/auth-options.ts` imports the Prisma client because the
-   NextAuth adapter takes the instance itself.
-2. `src/middleware.ts` must live at the root of `src/` (a Next.js requirement),
+1. `src/middleware.ts` must live at the root of `src/` (a Next.js requirement),
    which shadows `src/middleware/index.ts` in module resolution. The pieces in
    `src/middleware/` are therefore imported by explicit path, and no barrel
    file exists there.
@@ -77,21 +74,21 @@ build time rather than leaking server code into the browser bundle.
 
 ## 2. Folder structure
 
-| Directory     | Contains                                                                                                    |
-| ------------- | ----------------------------------------------------------------------------------------------------------- |
-| `app/`        | Next.js App Router only: route groups, pages, layouts, error boundaries, metadata routes, HTTP handlers     |
-| `components/` | React components, grouped by role: `ui`, `layout`, `marketing`, `convert`, `dashboard`, `auth`, `providers` |
-| `hooks/`      | Client-side state machines (`use-conversion`, `use-limits`)                                                 |
-| `api/`        | The API contract: request schemas, response envelope, DTO mappers and typed browser clients                 |
-| `middleware/` | Composable request-pipeline pieces used by route handlers, plus the same-origin check used at the edge      |
-| `services/`   | Business logic by domain: `conversion`, `jobs`, `storage`, `upload`, `auth`, `account`, `mail`              |
-| `database/`   | Prisma client, health probe, repositories and the development seed                                          |
-| `lib/`        | Cross-cutting infrastructure: env validation, logger, rate limiter, security primitives, plans, SEO, nav    |
-| `types/`      | Shared type surface and module augmentation                                                                 |
-| `utils/`      | Pure, dependency-free helpers                                                                               |
-| `styles/`     | Global stylesheet and design tokens                                                                         |
-| `content/`    | Long-form copy reused across pages and structured data                                                      |
-| `public/`     | Static binary assets served as-is                                                                           |
+| Directory     | Contains                                                                                                         |
+| ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `app/`        | Next.js App Router only: route groups, pages, layouts, error boundaries, metadata routes, HTTP handlers          |
+| `components/` | React components, grouped by role: `ui`, `layout`, `marketing`, `convert`, `documents`, `archives`, `providers`  |
+| `hooks/`      | Client-side state machines (`use-conversion`, `use-limits`)                                                      |
+| `api/`        | The API contract: request schemas, response envelope, DTO mappers and typed browser clients                      |
+| `middleware/` | Composable request-pipeline pieces used by route handlers, plus the same-origin check used at the edge           |
+| `services/`   | Business logic by domain: `conversion`, `jobs`, `storage`, `upload`, `identity`, `documents`, `archives`, `mail` |
+| `database/`   | Prisma client, health probe and the repositories                                                                 |
+| `lib/`        | Cross-cutting infrastructure: env validation, logger, rate limiter, security primitives, plans, SEO, nav         |
+| `types/`      | Shared type surface and module augmentation                                                                      |
+| `utils/`      | Pure, dependency-free helpers                                                                                    |
+| `styles/`     | Global stylesheet and design tokens                                                                              |
+| `content/`    | Long-form copy reused across pages and structured data                                                           |
+| `public/`     | Static binary assets served as-is                                                                                |
 
 ### Why `api/` is not `app/api/`
 
@@ -109,12 +106,12 @@ business rules; compare `app/api/jobs/route.ts` with
 
 ```
 components/
-├── ui/           21 shadcn/ui primitives — no app knowledge, no data fetching
-├── layout/       site chrome: header, footer, logo, theme toggle, user menu
+├── ui/           17 shadcn/ui primitives — no app knowledge, no data fetching
+├── layout/       site chrome: header, footer, logo, theme toggle
 ├── marketing/    static content sections composed by the marketing pages
 ├── convert/      the conversion workspace
-├── dashboard/    the authenticated app: sidebar, topbar, panels, charts
-├── auth/         sign-in, sign-up, password reset, email confirmation
+├── documents/    the PDF toolkit workspace
+├── archives/     the archive toolkit workspace
 └── providers/    client context mounted once in the root layout
 ```
 
@@ -122,7 +119,7 @@ components/
 
 ```
 Converter                       (client) owns nothing; reads the hook
-├── useLimits()                 plan limits, fetched after hydration
+├── useLimits()                 service limits, confirmed after hydration
 ├── useConversion()             the whole upload → convert → poll machine
 ├── Dropzone                    presentational; emits File[]
 ├── FileRow[]                   presentational; one per file, emits actions
@@ -133,8 +130,8 @@ Converter                       (client) owns nothing; reads the hook
 Rules that keep this maintainable:
 
 - **Server Components by default.** Only files that need state, effects or
-  event handlers carry `'use client'` — the converter, forms, theme toggle,
-  header and dashboard history.
+  event handlers carry `'use client'` — the converter, the toolkits, the
+  contact form, the theme toggle and the header.
 - **Presentational components take data and emit events.** `Dropzone`,
   `FileRow` and `OptionsPanel` hold no fetch logic; everything lives in
   `useConversion`.
@@ -155,48 +152,48 @@ api/
 ├── responses.ts              ok() / fail() / errors.*  — one envelope
 ├── dto/job.dto.ts            JobRow -> JobDto (hides storage keys, BigInt)
 ├── schemas/                  zod contracts, shared with the browser forms
-│   ├── common.ts             email, password, name, fieldErrors
-│   ├── auth.schema.ts        credentials, register, reset, verify
-│   ├── account.schema.ts     profile, password change
+│   ├── common.ts             email, name, fieldErrors
 │   ├── contact.schema.ts     enquiry + honeypot
+│   ├── archives.schema.ts    archive toolkit operations
+│   ├── documents.schema.ts   PDF toolkit operations
+│   ├── upload.schema.ts      chunked upload sessions
 │   └── job.schema.ts         create job, list query
 └── client/                   typed browser callers used by hooks
     ├── uploads.client.ts     XHR (the only API with upload progress)
     ├── jobs.client.ts        create / get / list / cancel / delete
-    ├── auth.client.ts        reset, verify, resend, revoke sessions
-    └── limits.client.ts      plan limits
+    ├── archives.client.ts    archive tasks, purge stored files
+    ├── documents.client.ts   PDF toolkit tasks
+    └── limits.client.ts      service limits
 ```
 
 ### Endpoints
 
-| Method   | Route                           | Auth             | Rate limit   | Delegates to                     |
-| -------- | ------------------------------- | ---------------- | ------------ | -------------------------------- |
-| `POST`   | `/api/uploads`                  | guest cookie     | 20 / 10 min  | `upload.service`                 |
-| `POST`   | `/api/jobs`                     | guest or session | 30 / 10 min  | `job-creation.service`           |
-| `GET`    | `/api/jobs`                     | guest or session | 300 / min    | `job.service.listJobs`           |
-| `GET`    | `/api/jobs/[id]`                | owner-scoped     | 300 / min    | `job.service.getOwnedJob`        |
-| `POST`   | `/api/jobs/[id]/cancel`         | owner-scoped     | 30 / 10 min  | `job.service.cancelOwnedJob`     |
-| `DELETE` | `/api/jobs/[id]`                | owner-scoped     | 30 / 10 min  | `job.service.deleteOwnedJob`     |
-| `GET`    | `/api/jobs/[id]/download`       | signed token     | 120 / 10 min | `job.repository.findForDownload` |
-| `GET`    | `/api/formats`                  | public           | 300 / min    | `conversion/registry` + probes   |
-| `GET`    | `/api/limits`                   | guest or session | 300 / min    | `identity.service`               |
-| `POST`   | `/api/auth/register`            | public           | 5 / hour     | `account.service.register`       |
-| `*`      | `/api/auth/[...nextauth]`       | NextAuth         | —            | `auth-options`                   |
-| `POST`   | `/api/auth/forgot-password`     | public           | 5 / hour ×2  | `password-reset.service`         |
-| `POST`   | `/api/auth/reset-password`      | link secret      | 20 / 15 min  | `password-reset.service`         |
-| `POST`   | `/api/auth/verify-email`        | link secret      | 20 / 15 min  | `email-verification.service`     |
-| `POST`   | `/api/auth/resend-verification` | public           | 5 / hour ×2  | `email-verification.service`     |
-| `PATCH`  | `/api/account`                  | session          | 10 / 15 min  | `account.service`                |
-| `DELETE` | `/api/account`                  | session          | 10 / 15 min  | `account.service.deleteAccount`  |
-| `DELETE` | `/api/account/sessions`         | session          | 10 / 15 min  | `session.service`                |
-| `POST`   | `/api/contact`                  | public           | 3 / hour     | `contact.service`                |
-| `GET`    | `/api/health`                   | public           | —            | `database/health`, `storage`     |
-| `POST`   | `/api/cron/cleanup`             | bearer secret    | —            | `retention.service`              |
-| `POST`   | `/api/cron/process`             | bearer secret    | —            | `queue.service`                  |
+| Method   | Route                                 | Auth          | Rate limit   | Delegates to                     |
+| -------- | ------------------------------------- | ------------- | ------------ | -------------------------------- |
+| `POST`   | `/api/uploads`                        | guest cookie  | 20 / 10 min  | `upload.service`                 |
+| `POST`   | `/api/uploads/sessions`               | guest cookie  | 20 / 10 min  | `upload/session.service`         |
+| `PUT`    | `/api/uploads/sessions/[id]`          | owner-scoped  | 20 / 10 min  | `upload/session.service`         |
+| `POST`   | `/api/uploads/sessions/[id]/complete` | owner-scoped  | 20 / 10 min  | `upload/session.service`         |
+| `POST`   | `/api/jobs`                           | guest cookie  | 30 / 10 min  | `job-creation.service`           |
+| `GET`    | `/api/jobs`                           | guest cookie  | 300 / min    | `job.service.listJobs`           |
+| `GET`    | `/api/jobs/[id]`                      | owner-scoped  | 300 / min    | `job.service.getOwnedJob`        |
+| `POST`   | `/api/jobs/[id]/cancel`               | owner-scoped  | 30 / 10 min  | `job.service.cancelOwnedJob`     |
+| `DELETE` | `/api/jobs/[id]`                      | owner-scoped  | 30 / 10 min  | `job.service.deleteOwnedJob`     |
+| `GET`    | `/api/jobs/[id]/download`             | signed token  | 120 / 10 min | `job.repository.findForDownload` |
+| `POST`   | `/api/tools/pdf`                      | guest cookie  | 30 / 10 min  | `document-task.service`          |
+| `POST`   | `/api/tools/archive`                  | guest cookie  | 30 / 10 min  | `archive-task.service`           |
+| `DELETE` | `/api/storage`                        | owner-scoped  | 30 / 10 min  | `job.service.purgeOwnedFiles`    |
+| `GET`    | `/api/formats`                        | public        | 300 / min    | `conversion/registry` + probes   |
+| `GET`    | `/api/limits`                         | guest cookie  | 300 / min    | `identity.service`               |
+| `POST`   | `/api/contact`                        | public        | 3 / hour     | `contact.service`                |
+| `GET`    | `/api/health`                         | public        | —            | `database/health`, `storage`     |
+| `POST`   | `/api/cron/cleanup`                   | bearer secret | —            | `retention.service`              |
+| `POST`   | `/api/cron/process`                   | bearer secret | —            | `queue.service`                  |
 
-"×2" marks the endpoints that send mail to a caller-chosen address: they are
-limited by source IP _and_ by target address, because an IP-only limit does not
-protect the recipient from someone rotating addresses to flood one inbox.
+"Guest cookie" is not authentication: it identifies a browser so that one
+visitor's files are not readable by another, and nothing more. "Owner-scoped"
+means the repository applies that filter itself, so a foreign id reads as a
+404 rather than leaking existence.
 
 ### Request pipeline
 
@@ -241,267 +238,104 @@ codes correct and business logic transport-agnostic.
 PostgreSQL 14+ via Prisma. Source: `prisma/schema.prisma`; migrations in
 `prisma/migrations/`, applied in filename order.
 
-### The sixteen tables
+### The three tables
 
-| Domain     | Tables                                                         |
-| ---------- | -------------------------------------------------------------- |
-| Identity   | `User`, `Account`, `Session`, `VerificationToken`, `AuthToken` |
-| Conversion | `ConversionJob`, `File`, `UploadSession`, `ApiKey`             |
-| Billing    | `Subscription`, `Payment`                                      |
-| Dashboard  | `FavoriteRoute`, `Notification`, `HistoryEntry`                |
-| Operations | `AuditLog`, `ContactMessage`                                   |
+| Domain     | Tables                           |
+| ---------- | -------------------------------- |
+| Conversion | `ConversionJob`, `UploadSession` |
+| Operations | `ContactMessage`                 |
 
-Three pairs look redundant and are not. Each split exists because the two halves
-have different lifetimes, different audiences, or different truth:
-
-- **`ConversionJob` vs `File`.** A job is a unit of work; a file is a stored
-  object. They are not one-to-one — a merge has many inputs and one output —
-  so the file side cannot live in job columns without parallel arrays.
-- **`HistoryEntry` vs `AuditLog`.** History is written for the user and shown
-  to them. The audit log is evidence for operators, carries an IP digest, and
-  must survive a user clearing their own history.
-- **`Subscription` vs `User.plan`.** The subscription is the truth, including
-  status and period. `User.plan` is a denormalised copy read by every quota
-  check on the request path, which must not join to find it.
-
-### Money
-
-`Payment.amountCents` is an integer in minor units, never a float or a
-`Decimal` mapped through JavaScript's `number`. Binary floating point cannot
-represent 0.1, and a ledger that rounds is a defect that compounds quietly.
-`providerPaymentId` is unique, so a webhook delivered twice — which every
-processor eventually does — records one payment rather than two.
-
-`Payment.userId` is nullable and set to `NULL` on account deletion rather than
-cascading. Everything else a user owns is erased with them; financial records
-are the exception that tax and chargeback rules require be retained, so erasure
-detaches the person and leaves the amounts.
+The service has no accounts, so it has no identity, billing or dashboard
+tables. What is stored is only what a conversion in flight needs in order to
+exist across requests: the browser posts an upload, the worker picks the job up
+in another process, and the browser polls for the result. None of it describes
+a person, and all of it is swept by the retention pass.
 
 ```
-┌───────────────────┐         ┌──────────────────┐
-│ User              │1       *│ Account          │  OAuth links
-│ id, email, name   ├─────────┤ provider, tokens │
-│ passwordHash?     │         └──────────────────┘
-│ role, plan        │
-│ usage counters    │1       *┌──────────────────┐
-│ createdAt         ├─────────┤ Session          │  adapter sessions
-└─────────┬─────────┘         └──────────────────┘
-          │1
-          │                   ┌──────────────────┐
-          │                  *│ ApiKey           │  hashed, prefix shown
-          ├───────────────────┤ hashedKey, prefix│
-          │                   └──────────────────┘
-          │*
-┌─────────┴──────────────────────────────────────┐
+┌────────────────────────────────────────────────┐
 │ ConversionJob                                  │
-│ userId? | guestId?   ← exactly one identifies  │
+│ guestId              ← opaque per-browser id   │
 │ status, category, sourceFormat, targetFormat   │
 │ options (jsonb), progress, error, attempts     │
 │ inputKey/Name/Size/Mime                        │
-│ outputKey/Name/Size/Mime                       │
+│ extraInputKeys[], extraInputNames[]            │
+│ outputKey/Name/Size/Mime, outputDetail         │
+│ operation?, archiveOperation?  ← toolkit jobs  │
 │ lockedAt, lockedBy   ← worker lease            │
 │ expiresAt            ← retention deadline      │
 │ ipHash, durationMs, timestamps                 │
 └────────────────────────────────────────────────┘
 
-          │*                        │*
-┌─────────┴─────────┐   ┌──────────┴──────────┐
-│ FavoriteRoute     │   │ Notification        │
-│ source/target fmt │   │ type, title, body   │
-│ useCount,lastUsed │   │ href, readAt        │
-│ unique per user   │   │ indexed by read     │
-└───────────────────┘   └─────────────────────┘
-
-┌──────────────────┐   ┌──────────────────┐   ┌─────────────────────┐
-│ VerificationToken│   │ ContactMessage   │   │ AuditLog            │
-│ (NextAuth adapter)│  └──────────────────┘   └─────────────────────┘
-└──────────────────┘
-
 ┌────────────────────────────────────────────────┐
-│ AuthToken                          * ─┐        │
-│ userId, type (RESET | VERIFICATION)   │ to User│
-│ tokenHash  ← HMAC only; never the token        │
-│ expiresAt, consumedAt ← single use, atomically │
-│ ipHash, createdAt                              │
+│ UploadSession        ← resumable chunked upload│
+│ guestId, filename, sourceFormat, mime          │
+│ declaredSize, receivedSize                     │
+│ chunkSize, totalChunks, receivedChunks[]       │
+│ storagePrefix, completed, expiresAt            │
 └────────────────────────────────────────────────┘
 
-User 1───1 Subscription 1───* Payment      (Payment.userId also → User,
-          tier, status,       amountCents,  nullable: SET NULL on delete)
-          period, provider    currency,
-          cancelAtPeriodEnd   providerPaymentId UNIQUE
-
-User 1───* HistoryEntry       action, summary, entityType/entityId, metadata
-
-ConversionJob 1───* File ←─── the object store's index
-                     storageKey UNIQUE, role (INPUT|OUTPUT|INTERMEDIATE),
-                     position (order within a merge), status, checksum,
-                     sizeBytes, expiresAt, deletedAt
+┌──────────────────┐
+│ ContactMessage   │  name, email, subject, message, status, ipHash
+└──────────────────┘
 ```
-
-**Dashboard models**
-
-- **`FavoriteRoute`** pins a _route_ (png to jpg), not a file — files expire,
-  routes are what a person repeats. A unique constraint on
-  `(userId, source, target)` makes pinning idempotent, and `useCount` /
-  `lastUsedAt` order the list by real use.
-- **`Notification`** is written by the worker when a conversion settles. Writes
-  are best-effort: a notification failure must never fail the conversion it
-  describes, so the service swallows and logs. Rows are pruned after 90 days by
-  the same retention pass that deletes files.
-- **`File`** is the canonical record of every stored object, keyed by
-  `storageKey`. It replaces the `extraInputKeys[]` / `extraInputNames[]` pair on
-  `ConversionJob`: two arrays kept in step by convention will eventually fall
-  out of step, and nothing in the database prevents it. `role` plus `position`
-  expresses input ordering for merges directly.
-
-  The migration backfills a row for every existing job input, extra input and
-  output, so the table describes reality on the first deploy rather than
-  starting empty. `ConversionJob` keeps its denormalised columns for now — they
-  are still the live read path in 14 files — which makes this the expand half of
-  an expand-and-contract migration. The contract half drops those columns once
-  the services read through `File`.
-
-- **`AuthToken`** backs password reset and email confirmation. Consumed rows are
-  kept for a day rather than deleted, so a second click on a spent link reports
-  "already used" instead of the more alarming "unknown link"; the retention pass
-  sweeps them after that. `User.sessionsValidFrom` is the companion field —
-  see [session revocation](#session-revocation).
 
 **Design decisions**
 
-- **`userId` or `guestId`, never both.** Anonymous conversions are first-class:
-  a guest owns their jobs through an opaque http-only cookie, and every query
-  is scoped by `ownerFilter()` in the repository.
+- **`guestId` is the only owner.** A visitor owns their jobs through an opaque
+  http-only cookie, and every query is scoped by `ownerFilter()` in the
+  repository rather than in handlers, so a new endpoint cannot forget it.
 - **`expiresAt` on the row, not inferred.** Retention is data, so the cleanup
   job is a single indexed range scan and the promise in the privacy policy is
   verifiable in SQL.
 - **`lockedAt`/`lockedBy` implement a lease.** A worker that dies mid-job leaves
   a stale lease; `reclaimStaleJobs()` returns it to the queue after 20 minutes.
-- **`BigInt` for file sizes.** A 10 GB Business-tier upload overflows `Int`.
-  DTO mapping converts to `Number` at the boundary.
+- **`BigInt` for file sizes.** A 10 GB upload overflows `Int`. DTO mapping
+  converts to `Number` at the boundary.
 - **Salted `ipHash`, never the address.** Enough for abuse control, not
   personal data at rest.
-- **Cascades from `User`.** Deleting an account removes accounts, sessions,
-  API keys and jobs in one statement; object storage is cleared first.
+- **Rows are deleted, not archived.** Nothing is kept for a user to look back
+  at, so a job record has no reason to outlive the file it described; the sweep
+  removes it after 30 days.
 
-**Indexes** — `ConversionJob` on `(userId, createdAt)`, `(guestId, createdAt)`,
-`(status, createdAt)` and `(expiresAt)`. Those cover the four real access
-patterns: a user's history, a guest's history, the queue claim, and retention.
+**Indexes** — `ConversionJob` on `(guestId, createdAt)`, `(status, createdAt)`
+and `(expiresAt)`. Those cover the three real access patterns: a browser's own
+conversions, the queue claim, and retention.
 
 ---
 
-## 6. Authentication flow
+## 6. Requester identity
 
-NextAuth v4 with a **JWT session strategy** (credentials sign-in cannot create
-database sessions) and the Prisma adapter for OAuth accounts.
-
-### Credential sign-in
-
-```
-Browser                    /api/auth/*              services / database
-   │  email + password         │                            │
-   ├──────────────────────────►│  authorize()               │
-   │                           ├───────────────────────────►│ users.findByEmail
-   │                           │                            │
-   │                           │  verifyPassword() compares against a dummy
-   │                           │  hash when the account is absent, so the
-   │                           │  response time is identical either way
-   │                           │◄───────────────────────────┤
-   │  Set-Cookie: __Secure-…   │  jwt() → { id, role, plan }│
-   │◄──────────────────────────┤                            │
-```
-
-### Registration
-
-`POST /api/auth/register` → `account.service.register()`. When the address is
-already taken, the service performs an equivalent bcrypt hash and returns the
-same body, so the endpoint cannot enumerate accounts. A duplicate is
-distinguishable only by attempting to sign in. Registration also dispatches a
-confirmation link; delivery failure never rolls back the account.
-
-### Emailed link secrets
-
-Password reset and email confirmation share one mechanism, in
-`services/auth/token.service.ts`:
-
-```
-issueToken()   32 random bytes ──► base64url token  (goes in the email only)
-                                └─► HMAC-SHA256     (the AuthToken row)
-
-consumeToken() token ──► digest ──► indexed lookup
-                                 ├── wrong purpose / unknown → "invalid"
-                                 ├── past expiresAt          → "expired"
-                                 ├── consumedAt set          → "used"
-                                 └── UPDATE … WHERE consumedAt IS NULL
-                                     └── 0 rows → lost the race → "used"
-```
-
-Properties this buys: a database disclosure yields no working links (only
-digests, and the HMAC key lives in the app); a link works exactly once, even
-under concurrent redemption; a link is only accepted for the purpose it was
-issued for; issuing a new link retires the outstanding one. Reset links live an
-hour, confirmation links a day.
-
-Both request endpoints answer identically for every address — registered or
-not, over the per-user ceiling or not — so neither can be used to enumerate
-accounts. Confirmation is a `POST` behind a button rather than a `GET`, because
-mail scanners follow links before people do and would otherwise spend the
-token.
-
-### Session revocation
-
-JWT sessions are fast but not withdrawable on their own. `User.sessionsValidFrom`
-is a watermark, and each token records `authenticatedAt` — a stable claim,
-unlike `iat`, which NextAuth rewrites on every re-encode:
-
-```
-jwt()  ── at most once per SESSION_REVALIDATE_MS (60s) ──►  resolveSessionState()
-           │                                                 │
-           │  authenticatedAt <= sessionsValidFrom  ──────────┤ revoked
-           │  user row missing (account deleted)    ──────────┤ revoked
-           │  otherwise → refresh role, plan, name, verified  │
-session() ── token.revoked → a session with no `user` ────────► every guard fails
-```
-
-The watermark moves on a password change, a completed reset, and
-`DELETE /api/account/sessions`. Cost is one indexed read per session per minute;
-the trade is that revocation takes up to a minute to reach other devices, which
-the UI states rather than hides.
+There is no authentication. The service is free, has no accounts and asks for
+nothing about the person using it, so there is no sign-in flow, no session, no
+password and no OAuth provider.
 
 ### Guest identity
 
-Visitors who never sign in still need to own their conversions:
+A visitor still needs to own their own conversions, so that one browser cannot
+read another's files:
 
 ```
 resolveRequester()
-  ├── session present  → { userId, plan, ownerKey: "u:<id>", limits: plan }
-  └── no session       → read or mint `hx_guest` (http-only, 30 days)
-                       → { guestId, ownerKey: "g:<id>", limits: GUEST_LIMITS }
+  └── read or mint `hx_guest` (opaque, http-only, 30 days)
+      → { guestId, ownerKey: "g:<id>", limits: LIMITS }
 ```
 
-`ownerKey` is what upload tickets are bound to, so a ticket issued to one
-visitor cannot be redeemed by another.
+The cookie holds a random identifier. It names no person, is joined to nothing,
+and expires on its own. `ownerKey` is what upload tickets are bound to, so a
+ticket issued to one visitor cannot be redeemed by another.
 
 ### Authorisation surfaces
 
-| Surface                | Mechanism                                                    |
-| ---------------------- | ------------------------------------------------------------ |
-| `/dashboard/*`         | Edge middleware checks the JWT, redirects with `callbackUrl` |
-| Account endpoints      | `requireSession()` returns the session or a ready 401        |
-| Job endpoints          | Repository-level owner scoping — a foreign id reads as 404   |
-| Downloads              | HMAC token bound to one job id, minutes-long expiry          |
-| Cron endpoints         | Bearer secret compared in constant time                      |
-| All mutating API calls | Same-origin check at the edge                                |
+| Surface                | Mechanism                                                  |
+| ---------------------- | ---------------------------------------------------------- |
+| Job endpoints          | Repository-level owner scoping — a foreign id reads as 404 |
+| Downloads              | HMAC token bound to one job id, minutes-long expiry        |
+| Cron endpoints         | Bearer secret compared in constant time                    |
+| All mutating API calls | Same-origin check at the edge                              |
 
-Role and plan are copied into the JWT so middleware needs no database round
-trip; `trigger === 'update'` refreshes them without a full re-login, and the
-same path re-checks revocation.
-
-Endpoints that act on the ambient session cookie live under `/api/account` so
-the edge same-origin check applies to them. `/api/auth/*` is exempt from that
-check because everything there proves its own authority — NextAuth's CSRF token
-or a single-use link secret — and so has nothing for a cross-site request to
-borrow.
+Ownership is enforced in the repository layer rather than in handlers, so a new
+endpoint cannot forget it: every query that touches `ConversionJob` or
+`UploadSession` goes through a module that applies the guest filter itself.
 
 ---
 
@@ -682,7 +516,7 @@ S3 driver uses the multipart uploader, and downloads stream.
 | Source file     | The conversion finishes, fails terminally or is cancelled      |
 | Output file     | `expiresAt` passes and the cleanup cron runs (2–168 h by plan) |
 | Rejected upload | Immediately — the key is deleted if the write errors           |
-| Whole account   | On deletion: objects first, then rows                          |
+| Whole browser   | `DELETE /api/storage`: objects first, then rows                |
 
 A bucket lifecycle rule matching the longest retention window is recommended as
 a backstop, not a substitute.
@@ -700,7 +534,7 @@ a backstop, not a substitute.
 └──────────────────────────────┬───────────────────────────────┘
                                │ HTTPS + HSTS, CSP, same-origin check
 ┌──────────────────────────────▼───────────────────────────────┐
-│ Route handler: schema validation, rate limit, session        │
+│ Route handler: schema validation, rate limit, owner scoping  │
 └──────────────────────────────┬───────────────────────────────┘
                                │ signed ticket — the only trusted description
 ┌──────────────────────────────▼───────────────────────────────┐
@@ -727,19 +561,16 @@ a backstop, not a substitute.
 | Ticket replay by another user    | Upload tickets are HMAC-signed over key, size, MIME, format **and owner**                                                         |
 | CSRF                             | Same-origin enforcement on all mutating API routes; `SameSite=Lax`, http-only, `__Secure-` cookies                                |
 | XSS                              | React escaping, restrictive CSP, `sanitize-html` on any generated markup, inert URL schemes only                                  |
-| Account enumeration              | Identical registration responses; dummy-hash comparison equalises sign-in timing                                                  |
-| Credential stuffing              | bcrypt cost 12, rate limits on auth routes                                                                                        |
 | Privacy leakage                  | EXIF/GPS stripped by default; IPs stored only as salted hashes; scheduled deletion                                                |
 | Server code in the browser       | `server-only` markers on database, storage and process-spawning modules                                                           |
 
 ### Secrets
 
-Three independent secrets, validated at startup by `lib/env.ts`, which fails
+Two independent secrets, validated at startup by `lib/env.ts`, which fails
 fast with a specific message rather than misbehaving later:
 
 | Secret                | Protects                                   | Rotation effect                                                         |
 | --------------------- | ------------------------------------------ | ----------------------------------------------------------------------- |
-| `NEXTAUTH_SECRET`     | Session JWTs                               | Signs everyone out                                                      |
 | `DOWNLOAD_URL_SECRET` | Download tokens, upload tickets, IP hashes | Invalidates outstanding links — the desired behaviour after an incident |
 | `CRON_SECRET`         | Scheduled job endpoints                    | Update the scheduler                                                    |
 
@@ -753,55 +584,6 @@ Set in `next.config.mjs` for every route: `Content-Security-Policy` with
 
 ---
 
-## 9a. Dashboard
-
-```
-app/(app)/dashboard/
-├── layout.tsx          session guard + shell (sidebar, topbar, skip link)
-├── page.tsx            overview: profile, KPIs, trend, quick convert, panels
-├── conversions/        full history with status filters
-├── favorites/          pinned routes + suggestions from history
-├── statistics/         90-day trend, category breakdown, data processed
-├── storage/            what is stored now, what expires within 24 h
-├── subscription/       plan, limits, usage meter
-└── settings/           profile, password, account deletion
-```
-
-**Chrome is chosen per route group.** `(site)` wraps the public pages in the
-marketing header and footer; `(app)` wraps the dashboard in its own shell. The
-root layout holds only the document, providers and site-wide JSON-LD — so the
-dashboard is never wrapped in marketing chrome, and each shell ships its own
-skip link.
-
-**Charts are inline SVG, not a library.** The shapes are simple and this keeps a
-~40 kB dependency out of the bundle. Their colour follows the data-viz method:
-
-- _Conversions over time_ — single-series area. The job is trend, so one hue and
-  no legend; the caption names the series. Failures appear as a dashed line only
-  when failures exist.
-- _By category_ — ranked horizontal bars on a **single-hue ordinal ramp** (the
-  job is magnitude, not identity). Every bar is directly labelled with its count
-  and percentage, so colour never carries the value alone.
-- _Quota and storage_ — meters, the right form for one ratio against a limit.
-  Tone escalates at 75% and 90%, and the wording escalates with it so colour is
-  never the only signal.
-
-The ramp was checked with the palette validator in both modes — monotone
-lightness, adjacent lightness gaps ≥ 0.06, single hue, and the step nearest the
-surface clearing 2:1 contrast:
-
-| Mode  | Ramp (low → high magnitude)   | Surface   | Nearest-step contrast |
-| ----- | ----------------------------- | --------- | --------------------- |
-| Light | `#818cf8 → #2a2382` (darker)  | `#ffffff` | 2.98:1                |
-| Dark  | `#4f46e5 → #c7d2fe` (lighter) | `#15151a` | 2.89:1                |
-
-`tests/unit/charts.test.tsx` renders each chart to static markup and asserts the
-output contains no `NaN` for the geometry edge cases — a single point, an empty
-series, all zeros — because an SVG path with `NaN` renders as nothing at all,
-with no error to notice.
-
----
-
 ## 10. Scaling model
 
 | Axis                | Approach                                                                                       |
@@ -809,14 +591,15 @@ with no error to notice.
 | Read traffic        | 237 pages prerendered at build; marketing and all 214 tool pages are static and CDN-cacheable  |
 | Conversion capacity | Horizontal: any number of instances share one queue via `FOR UPDATE SKIP LOCKED`               |
 | Mixed workloads     | `WORKER_ENABLED=false` on web-facing instances, `true` on a worker pool — same image           |
-| Database            | Four indexes cover every access pattern; the queue claim touches one row                       |
+| Database            | Three indexes cover every access pattern; the queue claim touches one row                      |
 | Storage             | Stateless app; S3 scales independently, downloads bypass the server via pre-signed URLs        |
 | Memory              | Streaming upload/download and per-job temp directories keep usage flat regardless of file size |
 
 **Known limits, stated plainly.** Rate-limit counters are per instance, so
 behind N replicas the effective limit is N× the configured value — `consume()`
-in `lib/rate-limit.ts` is the single call site to swap for Redis. Billing is
-defined and enforced in `lib/plans.ts` but no payment provider is wired in.
+in `lib/rate-limit.ts` is the single call site to swap for Redis. There is no
+billing and no accounts: `lib/plans.ts` holds one allowance that applies to
+everyone.
 
 ---
 
@@ -824,172 +607,241 @@ defined and enforced in `lib/plans.ts` but no payment provider is wired in.
 
 ```
 hexaconverter/
-├── .github/workflows/ci.yml           lint · typecheck · test · build · e2e · docker
-├── .vscode/                           workspace settings and extension hints
+├── .github/workflows/                 CI and deploy pipelines
+├── deploy/nginx/                      reverse-proxy configuration
 ├── docs/
-│   └── ARCHITECTURE.md                this document
+│   ├── ARCHITECTURE.md
+│   ├── BACKUP.md
+│   ├── DEPLOYMENT.md
+│   ├── INSTALLATION.md
+│   ├── MONITORING.md
+│   └── PLAY_STORE.md
 ├── prisma/
 │   ├── migrations/
 │   │   ├── 20260701000000_init/
 │   │   │   └── migration.sql
+│   │   ├── 20260727000000_dashboard/
+│   │   │   └── migration.sql
+│   │   ├── 20260727120000_document_toolkit/
+│   │   │   └── migration.sql
+│   │   ├── 20260727154707_archive_toolkit/
+│   │   │   └── migration.sql
+│   │   ├── 20260727155557_job_output_detail/
+│   │   │   └── migration.sql
+│   │   ├── 20260727162417_upload_sessions/
+│   │   │   └── migration.sql
+│   │   ├── 20260727190000_auth_tokens_and_session_revocation/
+│   │   │   └── migration.sql
+│   │   ├── 20260727200000_billing_files_history/
+│   │   │   └── migration.sql
+│   │   ├── 20260801120000_free_service_no_accounts/
+│   │   │   └── migration.sql
 │   │   └── migration_lock.toml
 │   └── schema.prisma
 ├── public/
+│   ├── brand/                         logos and wordmarks
 │   ├── icon-192.png
 │   └── icon-512.png
+├── scripts/
+│   ├── exercise-abuse.mjs
+│   ├── exercise-features.mjs
+│   ├── exercise-routes.mjs
+│   └── make-fixtures.mjs
 ├── src/
-│   ├── api/                           ── API contract layer
+│   ├── api/
 │   │   ├── client/
+│   │   │   ├── archives.client.ts
+│   │   │   ├── documents.client.ts
 │   │   │   ├── jobs.client.ts
 │   │   │   ├── limits.client.ts
 │   │   │   └── uploads.client.ts
 │   │   ├── dto/
 │   │   │   └── job.dto.ts
 │   │   ├── schemas/
-│   │   │   ├── account.schema.ts
-│   │   │   ├── auth.schema.ts
+│   │   │   ├── archives.schema.ts
 │   │   │   ├── common.ts
 │   │   │   ├── contact.schema.ts
+│   │   │   ├── documents.schema.ts
 │   │   │   ├── index.ts
-│   │   │   └── job.schema.ts
+│   │   │   ├── job.schema.ts
+│   │   │   └── upload.schema.ts
 │   │   └── responses.ts
-│   │
-│   ├── app/                           ── routing and HTTP adapters
-│   │   ├── (app)/dashboard/
-│   │   │   ├── page.tsx
-│   │   │   └── settings/page.tsx
-│   │   ├── (auth)/
-│   │   │   ├── sign-in/page.tsx
-│   │   │   └── sign-up/page.tsx
-│   │   ├── (marketing)/
-│   │   │   ├── about/page.tsx
-│   │   │   ├── contact/page.tsx
-│   │   │   ├── faq/page.tsx
-│   │   │   ├── features/page.tsx
-│   │   │   └── pricing/page.tsx
-│   │   ├── (tools)/
-│   │   │   ├── convert/[category]/page.tsx     5 category converters
-│   │   │   └── tools/[slug]/page.tsx           214 prerendered routes
+│   ├── app/
+│   │   ├── (site)/
+│   │   │   ├── (marketing)/
+│   │   │   │   ├── about/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── contact/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── faq/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── features/
+│   │   │   │       └── page.tsx
+│   │   │   ├── (tools)/
+│   │   │   │   ├── convert/
+│   │   │   │   │   └── [category]/
+│   │   │   │   │       └── page.tsx
+│   │   │   │   └── tools/
+│   │   │   │       ├── [slug]/
+│   │   │   │       │   └── page.tsx
+│   │   │   │       ├── archive/
+│   │   │   │       │   └── [operation]/
+│   │   │   │       │       └── page.tsx
+│   │   │   │       └── pdf/
+│   │   │   │           └── [operation]/
+│   │   │   │               └── page.tsx
+│   │   │   ├── legal/
+│   │   │   │   ├── cookies/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── privacy/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── terms/
+│   │   │   │       └── page.tsx
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
 │   │   ├── api/
-│   │   │   ├── account/route.ts
-│   │   │   ├── auth/
-│   │   │   │   ├── [...nextauth]/route.ts
-│   │   │   │   └── register/route.ts
-│   │   │   ├── contact/route.ts
+│   │   │   ├── contact/
+│   │   │   │   └── route.ts
 │   │   │   ├── cron/
-│   │   │   │   ├── cleanup/route.ts
-│   │   │   │   └── process/route.ts
-│   │   │   ├── formats/route.ts
-│   │   │   ├── health/route.ts
+│   │   │   │   ├── cleanup/
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── process/
+│   │   │   │       └── route.ts
+│   │   │   ├── formats/
+│   │   │   │   └── route.ts
+│   │   │   ├── health/
+│   │   │   │   └── route.ts
 │   │   │   ├── jobs/
 │   │   │   │   ├── [id]/
-│   │   │   │   │   ├── cancel/route.ts
-│   │   │   │   │   ├── download/route.ts
+│   │   │   │   │   ├── cancel/
+│   │   │   │   │   │   └── route.ts
+│   │   │   │   │   ├── download/
+│   │   │   │   │   │   └── route.ts
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── route.ts
-│   │   │   ├── limits/route.ts
-│   │   │   └── uploads/route.ts
-│   │   ├── legal/
-│   │   │   ├── cookies/page.tsx
-│   │   │   ├── privacy/page.tsx
-│   │   │   └── terms/page.tsx
-│   │   ├── apple-icon.tsx
+│   │   │   ├── limits/
+│   │   │   │   └── route.ts
+│   │   │   ├── storage/
+│   │   │   │   └── route.ts
+│   │   │   ├── tools/
+│   │   │   │   ├── archive/
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── pdf/
+│   │   │   │       └── route.ts
+│   │   │   └── uploads/
+│   │   │       ├── sessions/
+│   │   │       │   ├── [id]/
+│   │   │       │   │   ├── complete/
+│   │   │       │   │   │   └── route.ts
+│   │   │       │   │   └── route.ts
+│   │   │       │   └── route.ts
+│   │   │       └── route.ts
+│   │   ├── apple-icon.png
 │   │   ├── error.tsx
 │   │   ├── global-error.tsx
-│   │   ├── icon.svg
+│   │   ├── icon.png
 │   │   ├── layout.tsx
-│   │   ├── loading.tsx
 │   │   ├── manifest.ts
 │   │   ├── not-found.tsx
 │   │   ├── opengraph-image.tsx
-│   │   ├── page.tsx
 │   │   ├── robots.ts
 │   │   └── sitemap.ts
-│   │
-│   ├── components/                    ── presentation
-│   │   ├── auth/
-│   │   │   ├── oauth-buttons.tsx
-│   │   │   ├── sign-in-form.tsx
-│   │   │   └── sign-up-form.tsx
+│   ├── components/
+│   │   ├── archives/
+│   │   │   ├── archive-workspace.tsx
+│   │   │   └── purge-button.tsx
 │   │   ├── convert/
 │   │   │   ├── converter.tsx
 │   │   │   ├── dropzone.tsx
+│   │   │   ├── file-list.tsx
 │   │   │   ├── file-row.tsx
+│   │   │   ├── image-preview.tsx
+│   │   │   ├── media-preview.tsx
 │   │   │   └── options-panel.tsx
-│   │   ├── dashboard/
-│   │   │   ├── account-settings.tsx
-│   │   │   └── job-history.tsx
+│   │   ├── documents/
+│   │   │   └── pdf-workspace.tsx
 │   │   ├── layout/
 │   │   │   ├── legal-page.tsx
 │   │   │   ├── logo.tsx
 │   │   │   ├── site-footer.tsx
 │   │   │   ├── site-header.tsx
-│   │   │   ├── theme-toggle.tsx
-│   │   │   └── user-menu.tsx
+│   │   │   └── theme-toggle.tsx
 │   │   ├── marketing/
 │   │   │   ├── category-grid.tsx
 │   │   │   ├── contact-form.tsx
-│   │   │   ├── cta.tsx
 │   │   │   ├── faq-section.tsx
 │   │   │   ├── feature-list.tsx
+│   │   │   ├── features.tsx
+│   │   │   ├── format-marquee.tsx
 │   │   │   ├── hero.tsx
 │   │   │   ├── how-it-works.tsx
-│   │   │   └── popular-tools.tsx
+│   │   │   ├── popular-tools.tsx
+│   │   │   ├── reveal.tsx
+│   │   │   ├── supported-formats.tsx
+│   │   │   ├── testimonials.tsx
+│   │   │   ├── trust-signals.tsx
+│   │   │   └── why-choose-us.tsx
 │   │   ├── providers/
-│   │   │   ├── auth-provider.tsx
 │   │   │   ├── index.tsx
 │   │   │   └── theme-provider.tsx
-│   │   └── ui/                        21 shadcn/ui primitives
-│   │       ├── accordion.tsx   ├── alert.tsx      ├── avatar.tsx
-│   │       ├── badge.tsx       ├── button.tsx     ├── card.tsx
-│   │       ├── checkbox.tsx    ├── dialog.tsx     ├── dropdown-menu.tsx
-│   │       ├── input.tsx       ├── label.tsx      ├── progress.tsx
-│   │       ├── scroll-area.tsx ├── select.tsx     ├── separator.tsx
-│   │       ├── skeleton.tsx    ├── slider.tsx     ├── sonner.tsx
-│   │       ├── switch.tsx      ├── tabs.tsx       └── tooltip.tsx
-│   │
+│   │   └── ui/
+│   │       ├── accordion.tsx
+│   │       ├── alert.tsx
+│   │       ├── badge.tsx
+│   │       ├── button.tsx
+│   │       ├── card.tsx
+│   │       ├── checkbox.tsx
+│   │       ├── dialog.tsx
+│   │       ├── dropdown-menu.tsx
+│   │       ├── input.tsx
+│   │       ├── label.tsx
+│   │       ├── progress.tsx
+│   │       ├── select.tsx
+│   │       ├── separator.tsx
+│   │       ├── slider.tsx
+│   │       ├── sonner.tsx
+│   │       ├── switch.tsx
+│   │       └── tooltip.tsx
 │   ├── content/
-│   │   └── faq.ts                     copy reused by pages and JSON-LD
-│   │
-│   ├── database/                      ── data access
-│   │   ├── client.ts                  Prisma singleton (server-only)
-│   │   ├── health.ts                  connectivity probe
+│   │   ├── faq.ts
+│   │   └── testimonials.ts
+│   ├── database/
 │   │   ├── repositories/
-│   │   │   ├── audit.repository.ts
 │   │   │   ├── contact.repository.ts
-│   │   │   ├── job-queue.repository.ts    atomic claim, leases, retention
-│   │   │   ├── job.repository.ts          owner-scoped reads and writes
-│   │   │   └── user.repository.ts
-│   │   └── seed.ts
-│   │
-│   ├── hooks/                         ── browser state
-│   │   ├── use-conversion.ts          upload → convert → poll machine
-│   │   └── use-limits.ts
-│   │
-│   ├── lib/                           ── cross-cutting infrastructure
-│   │   ├── env.ts                     zod-validated environment
-│   │   ├── logger.ts                  structured JSON logs with redaction
+│   │   │   ├── job-queue.repository.ts
+│   │   │   ├── job.repository.ts
+│   │   │   └── upload-session.repository.ts
+│   │   ├── client.ts
+│   │   └── health.ts
+│   ├── hooks/
+│   │   ├── use-archive-toolkit.ts
+│   │   ├── use-conversion.ts
+│   │   ├── use-limits.ts
+│   │   └── use-pdf-toolkit.ts
+│   ├── lib/
+│   │   ├── security/
+│   │   │   └── index.ts
+│   │   ├── contact.ts
+│   │   ├── env.ts
+│   │   ├── logger.ts
 │   │   ├── nav.ts
-│   │   ├── plans.ts                   plan limits — enforced and displayed
+│   │   ├── plans.ts
 │   │   ├── rate-limit.ts
-│   │   ├── security/index.ts          hashing, HMAC tokens, tickets, filenames
-│   │   └── seo.ts                     metadata builders and JSON-LD
-│   │
-│   ├── middleware/                    ── request pipeline
-│   │   ├── require-session.ts
+│   │   └── seo.ts
+│   ├── middleware/
 │   │   ├── same-origin.ts
 │   │   ├── with-error-handling.ts
 │   │   ├── with-rate-limit.ts
 │   │   └── with-validation.ts
-│   │
-│   ├── services/                      ── business logic
-│   │   ├── account/account.service.ts
-│   │   ├── auth/
-│   │   │   ├── auth-options.ts
-│   │   │   └── identity.service.ts    requester, quota, concurrency, retention
+│   ├── services/
+│   │   ├── archives/
+│   │   │   ├── archive-task.service.ts
+│   │   │   ├── archive-toolkit.service.ts
+│   │   │   └── formats.ts
 │   │   ├── conversion/
-│   │   │   ├── binaries.ts            probing and safe process spawning
-│   │   │   ├── conversion.service.ts  orchestrator
+│   │   │   ├── codecs/
+│   │   │   │   ├── bmp.ts
+│   │   │   │   └── sample-rate.ts
 │   │   │   ├── engines/
 │   │   │   │   ├── archive.engine.ts
 │   │   │   │   ├── document.engine.ts
@@ -998,68 +850,85 @@ hexaconverter/
 │   │   │   │   ├── office.engine.ts
 │   │   │   │   ├── pdf-render.engine.ts
 │   │   │   │   └── spreadsheet.engine.ts
-│   │   │   ├── options.ts             per-engine option schemas
-│   │   │   └── registry.ts            38 formats · 214 routes
+│   │   │   ├── binaries.ts
+│   │   │   ├── conversion.service.ts
+│   │   │   ├── options.ts
+│   │   │   └── registry.ts
+│   │   ├── documents/
+│   │   │   ├── document-task.service.ts
+│   │   │   ├── page-selection.ts
+│   │   │   ├── pdf-raster.service.ts
+│   │   │   ├── pdf-text.engine.ts
+│   │   │   ├── pdf-to-docx.service.ts
+│   │   │   ├── pdf-toolkit.service.ts
+│   │   │   └── pdfjs-fonts.ts
+│   │   ├── identity/
+│   │   │   └── identity.service.ts
 │   │   ├── jobs/
-│   │   │   ├── job-creation.service.ts    all preconditions, in order
-│   │   │   ├── job.service.ts             read, cancel, delete
-│   │   │   ├── queue.service.ts           claim, execute, retry, reclaim
-│   │   │   ├── retention.service.ts       scheduled deletion
-│   │   │   └── worker.ts                  in-process loop
+│   │   │   ├── job-creation.service.ts
+│   │   │   ├── job.service.ts
+│   │   │   ├── queue.service.ts
+│   │   │   ├── retention.service.ts
+│   │   │   └── worker.ts
 │   │   ├── mail/
 │   │   │   ├── contact.service.ts
 │   │   │   └── mail.service.ts
 │   │   ├── storage/
-│   │   │   ├── index.ts               driver selection and key building
+│   │   │   ├── index.ts
 │   │   │   ├── local.driver.ts
 │   │   │   └── s3.driver.ts
 │   │   └── upload/
-│   │       ├── file-signatures.ts     magic-byte container sniffing
-│   │       └── upload.service.ts      streaming ingestion + validation
-│   │
+│   │       ├── file-signatures.ts
+│   │       ├── scanner.service.ts
+│   │       ├── session.service.ts
+│   │       └── upload.service.ts
 │   ├── styles/
-│   │   └── globals.css                design tokens, both themes
-│   │
+│   │   └── globals.css
 │   ├── types/
 │   │   ├── api.ts
+│   │   ├── archives.ts
 │   │   ├── conversion.ts
+│   │   ├── documents.ts
+│   │   ├── heic-decode.d.ts
 │   │   ├── index.ts
-│   │   ├── next-auth.d.ts
 │   │   └── storage.ts
-│   │
-│   ├── utils/                         ── pure helpers
+│   ├── utils/
 │   │   ├── cn.ts
 │   │   ├── file.ts
 │   │   ├── format.ts
 │   │   ├── index.ts
 │   │   ├── number.ts
 │   │   └── string.ts
-│   │
-│   └── middleware.ts                  Next.js edge entry (must live here)
-│
+│   └── middleware.ts
 ├── tests/
-│   ├── e2e/smoke.spec.ts
+│   ├── e2e/
+│   │   └── smoke.spec.ts
 │   └── unit/
-│       ├── helpers/source-files.ts
-│       ├── architecture.test.ts       enforces every rule in section 1
+│       ├── helpers/
+│       │   ├── env.setup.ts
+│       │   ├── server-only.ts
+│       │   └── source-files.ts
+│       ├── architecture.test.ts
+│       ├── bmp.test.ts
+│       ├── combine-pdf.test.ts
 │       ├── file-signatures.test.ts
 │       ├── formats.test.ts
+│       ├── page-selection.test.ts
+│       ├── pdf-raster.test.ts
+│       ├── rasterize-to-png.test.ts
 │       ├── rate-limit.test.ts
+│       ├── sample-rate.test.ts
+│       ├── scanner.test.ts
 │       ├── security.test.ts
 │       ├── utils.test.ts
 │       └── validation.test.ts
-│
-├── .env.example                       every variable, documented
-├── Dockerfile                         multi-stage; bundles LibreOffice + Poppler
-├── docker-compose.yml                 app + PostgreSQL + MinIO
-├── LICENSE
-├── README.md
-├── SECURITY.md
-├── components.json                    shadcn/ui configuration
-├── next.config.mjs                    security headers, CSP, standalone output
+├── Dockerfile
+├── docker-compose.yml                 local Postgres and app
+├── docker-compose.prod.yml            production stack
+├── ecosystem.config.cjs               PM2 process definitions
+├── next.config.mjs
 ├── package.json
 ├── playwright.config.ts
-├── postcss.config.mjs
 ├── tailwind.config.ts
 ├── tsconfig.json
 └── vitest.config.ts
