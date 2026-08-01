@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "postbuild": "node scripts/postbuild-standalone.mjs",
     "build:linux": "node scripts/build-linux-dist.mjs",
     "start": "next start",
     "lint": "next lint",

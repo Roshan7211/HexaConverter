@@ -114,7 +114,7 @@ LibreOffice, Poppler and Ghostscript first (see
 git clone <repository-url> /srv/hexaconverter && cd /srv/hexaconverter
 npm ci
 cp .env.production.example .env && chmod 600 .env   # Next reads .env
-npm run build
+npm run build          # `postbuild` copies static assets into .next/standalone
 npx prisma migrate deploy
 
 pm2 start ecosystem.config.cjs --env production
@@ -123,6 +123,15 @@ pm2 save && pm2 startup
 
 Two apps start: `hexaconverter-web` in cluster mode across all cores, and
 `hexaconverter-worker` in fork mode on port 3001.
+
+**Do not run `next build` directly here.** `output: 'standalone'` emits a
+server that looks for assets beside itself, in `.next/standalone/.next/static`
+and `.next/standalone/public`, and `next build` does not put them there. The
+`postbuild` script does, and it only runs as part of `npm run build`.
+
+Skip it and the failure is quiet: the server starts, every page returns 200,
+and only the CSS, JavaScript and images 404 — which looks like a broken
+stylesheet, not a missing build step.
 
 The worker is deliberately **not** clustered. Its concurrency is already set by
 `WORKER_CONCURRENCY`; running N cluster instances would multiply it by N and
