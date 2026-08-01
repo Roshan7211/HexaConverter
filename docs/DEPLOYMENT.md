@@ -124,6 +124,29 @@ pm2 save && pm2 startup
 Two apps start: `hexaconverter-web` in cluster mode across all cores, and
 `hexaconverter-worker` in fork mode on port 3001.
 
+**A split deployment must schedule `/api/cron/process`.** The in-process worker
+starts lazily, from the job-creation path — so it starts in whichever process
+accepted the job. That is the web tier, where `WORKER_ENABLED=false` makes it a
+deliberate no-op, and the worker process serves no traffic, so nothing ever
+starts its loop. Jobs stay QUEUED and the only symptom is a progress bar that
+never moves. The cron endpoint calls `processQueueBatch()` directly and does
+not depend on that, which is what makes it required here rather than optional:
+
+```cron
+* * * * * curl -fsS -X POST http://127.0.0.1:3000/api/cron/process \
+  -H "Authorization: Bearer $CRON_SECRET" >/dev/null
+```
+
+**On a small host, prefer one process.** Below about 4 GB, two Next servers
+cost ~240 MB for load balancing you do not need, and the memory is worth more
+to a LibreOffice conversion. Run the web app alone with `WORKER_ENABLED=true`
+in `.env` and start only it — the worker then starts on the first conversion,
+with no scheduler and no queue latency:
+
+```bash
+WEB_INSTANCES=1 pm2 start ecosystem.config.cjs --only hexaconverter-web --env production
+```
+
 **Do not run `next build` directly here.** `output: 'standalone'` emits a
 server that looks for assets beside itself, in `.next/standalone/.next/static`
 and `.next/standalone/public`, and `next build` does not put them there. The

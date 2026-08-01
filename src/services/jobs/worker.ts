@@ -13,8 +13,28 @@ import {
  * In-process background worker.
  *
  * Started lazily on first use so a cold instance does no work until a
- * conversion is actually queued. Deployments that cannot keep a loop alive set
- * `WORKER_ENABLED=false` and schedule `/api/cron/process` instead.
+ * conversion is actually queued.
+ *
+ * ---------------------------------------------------------------------------
+ * That laziness has a consequence worth stating plainly, because it is not
+ * obvious and it presents as a hung queue rather than an error.
+ *
+ * `ensureWorker()` is reached only from the job-creation paths. Those run in
+ * whichever process served the request. So the loop starts **in the process
+ * that accepted the job** — which is correct for a single process serving
+ * traffic and converting, and wrong for a split deployment.
+ *
+ * Split across a web tier (`WORKER_ENABLED=false`) and a worker process
+ * (`WORKER_ENABLED=true`), nothing ever starts it: job creation happens in the
+ * web tier, where this is a deliberate no-op, and the worker process serves no
+ * traffic, so no request reaches it. Jobs stay QUEUED forever and the only
+ * symptom is a progress bar that never moves.
+ *
+ * A split deployment must therefore **schedule `/api/cron/process`**, which
+ * calls `processQueueBatch()` directly and does not depend on this function.
+ * That is required, not an optimisation. A single process with
+ * `WORKER_ENABLED=true` needs no scheduler and starts conversions instantly.
+ * ---------------------------------------------------------------------------
  */
 
 /** Idle poll interval when the queue is empty. */
