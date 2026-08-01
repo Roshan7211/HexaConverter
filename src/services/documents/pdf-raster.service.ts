@@ -1,12 +1,9 @@
 import 'server-only';
 
-import { createRequire } from 'node:module';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-
 import { createCanvas } from '@napi-rs/canvas';
 import sharp from 'sharp';
 
+import { standardFontsUrl } from '@/services/documents/pdfjs-fonts';
 import { ConversionError } from '@/types/conversion';
 
 /**
@@ -60,44 +57,6 @@ export interface RasterisedPage {
 interface LoadedPdf {
   pdf: Awaited<ReturnType<typeof loadDocument>>['pdf'];
   destroy: () => Promise<void>;
-}
-
-/**
- * Where pdfjs finds substitutes for the standard 14 PDF fonts.
- *
- * Without this, any page whose text uses Helvetica, Times or Courier — which is
- * most PDFs not produced with embedded fonts — rasterises with the text
- * *missing*. pdfjs only warns; it does not fail, so the result is a
- * plausible-looking page with nothing written on it.
- *
- * Resolution is anchored to `process.cwd()` rather than `import.meta.url`
- * because webpack rewrites the latter to a numeric module id when it bundles
- * this file for the server build. `createRequire` then receives a number and
- * throws, taking down every PDF route — including text extraction, which does
- * not otherwise need fonts at all.
- *
- * Returned as a file:// URL: pdfjs treats the value as a URL, not a path.
- */
-let cachedFontsUrl: string | null | undefined;
-
-function standardFontsUrl(): string | undefined {
-  if (cachedFontsUrl !== undefined) return cachedFontsUrl ?? undefined;
-
-  try {
-    // Any filename inside the project root works as the resolution anchor; the
-    // file itself need not exist.
-    const resolver = createRequire(path.join(process.cwd(), 'noop.js'));
-    const entry = resolver.resolve('pdfjs-dist/package.json');
-    cachedFontsUrl = pathToFileURL(
-      path.join(path.dirname(entry), 'standard_fonts/'),
-    ).toString();
-  } catch {
-    // Rendering still works; standard-font text will be missing from it. That
-    // is a degraded page rather than a failed conversion, so it is not fatal.
-    cachedFontsUrl = null;
-  }
-
-  return cachedFontsUrl ?? undefined;
 }
 
 async function loadDocument(bytes: Buffer) {

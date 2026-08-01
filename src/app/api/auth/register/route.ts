@@ -28,7 +28,7 @@ export const POST = withErrorHandling(
     const body = await parseJsonBody(request, registerSchema);
     if (!body.success) return body.response;
 
-    const result = await register({
+    await register({
       ...body.data,
       ipHash: hashIp(clientIp(request.headers)),
     });
@@ -45,7 +45,10 @@ export const POST = withErrorHandling(
           ? 'Check your inbox for a confirmation link to finish setting up your account.'
           : 'Account ready. Sign in to continue.',
       },
-      { status: result.duplicate ? 200 : 201 },
+      // Always 201, never 200-for-duplicate: the body is already identical
+      // either way, so varying the status is the one thing left that would
+      // tell a caller whether the address was already registered.
+      { status: 201 },
     );
   },
 );

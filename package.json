@@ -4,7 +4,7 @@
   "private": true,
   "description": "HexaConverter — online conversion platform for documents, images, video, audio and archives.",
   "engines": {
-    "node": ">=20.11.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "dev": "next dev",

@@ -13,6 +13,7 @@ import {
 } from 'docx';
 
 import { logger } from '@/lib/logger';
+import { standardFontsUrl } from '@/services/documents/pdfjs-fonts';
 import { ConversionError } from '@/types/conversion';
 
 /**
@@ -67,6 +68,9 @@ async function extractPages(bytes: Buffer): Promise<TextItem[][]> {
     // in a server process.
     useSystemFonts: false,
     disableFontFace: true,
+    // Extraction leans on the standard-14 metrics for character mapping, and
+    // pdfjs only warns when it cannot reach them.
+    standardFontDataUrl: standardFontsUrl(),
   });
 
   let pdf;

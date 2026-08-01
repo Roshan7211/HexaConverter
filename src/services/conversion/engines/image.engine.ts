@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { open, readFile, writeFile } from 'node:fs/promises';
 
 import sharp from 'sharp';
 
@@ -316,15 +316,51 @@ export const imageEngine: ConversionEngine = {
   },
 };
 
+/**
+ * Sniffs the formats libvips cannot open by itself.
+ *
+ * The image-to-PDF route takes a list of files that may each be a different
+ * format, and only the first one's format is on the context, so the format has
+ * to come from the bytes rather than from the caller.
+ */
+function sniffUnsupported(head: Buffer): 'bmp' | 'heic' | null {
+  if (isBmp(head)) return 'bmp';
+  // ISO-BMFF: a `ftyp` box whose brand is one of the HEIF ones.
+  if (head.length >= 12 && head.subarray(4, 8).toString('latin1') === 'ftyp') {
+    const brand = head.subarray(8, 12).toString('latin1');
+    if (
+      ['heic', 'heix', 'heim', 'heis', 'hevc', 'mif1', 'msf1'].includes(brand)
+    ) {
+      return 'heic';
+    }
+  }
+  return null;
+}
+
 /** Rasterises any supported image to PNG — used by the PDF wrapper. */
 export async function rasterizeToPng(
   inputPath: string,
   maxDimension = 4_000,
 ): Promise<{ data: Buffer; width: number; height: number }> {
-  const image = sharp(inputPath, {
-    limitInputPixels: MAX_PIXELS,
-    sequentialRead: true,
-  });
+  // BMP and HEIC do not open through libvips, so this has to go through
+  // `openSource` like every other read does. Calling sharp directly here is
+  // what made `bmp → pdf` and `heic → pdf` fail with a bare "unsupported image
+  // format" while the same inputs converted fine to every other target.
+  // Only the leading bytes are needed; these files can be very large.
+  const head = Buffer.alloc(16);
+  const handle = await open(inputPath, 'r');
+  try {
+    await handle.read(head, 0, head.length, 0);
+  } finally {
+    await handle.close();
+  }
+
+  const image = await openSource(
+    inputPath,
+    sniffUnsupported(head) ?? '',
+    false,
+    undefined,
+  );
 
   const metadata = await image.metadata();
   const width = metadata.width ?? maxDimension;
