@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { ARCHIVE_OPERATION_SPECS } from '@/types/archives';
+
 import {
   ACCEPTED_INPUT_EXTENSIONS,
   CONVERSION_ROUTES,
@@ -164,5 +166,33 @@ describe('archive formats', () => {
     expect(getFormat('tgz')?.id).toBe('tgz');
     expect(resolveFormatId('tar.gz')).toBe('tgz');
     expect(resolveFormatId('gz')).toBe('gz');
+  });
+});
+
+describe('archive file-input accept lists', () => {
+  it('uses only tokens the accept attribute understands', () => {
+    for (const spec of Object.values(ARCHIVE_OPERATION_SPECS)) {
+      if (!spec.accept) continue;
+
+      for (const token of spec.accept.split(',')) {
+        // `accept` takes one extension per token or a MIME type. A compound
+        // suffix like `.tar.gz` matches nothing and silently narrows the
+        // picker, which is how every archive ended up greyed out.
+        if (token.startsWith('.')) {
+          expect(token.slice(1)).not.toContain('.');
+        } else {
+          expect(token).toMatch(/^[a-z]+\/[a-z0-9.+-]+$/);
+        }
+      }
+    }
+  });
+
+  it('offers MIME types alongside extensions for extraction', () => {
+    const accept = ARCHIVE_OPERATION_SPECS.EXTRACT.accept ?? '';
+    // Extensions alone rely on the OS having a mapping registered; a machine
+    // without 7-Zip or RAR installed then greys those files out.
+    expect(accept).toContain('.7z');
+    expect(accept).toContain('application/x-7z-compressed');
+    expect(accept).toContain('application/octet-stream');
   });
 });

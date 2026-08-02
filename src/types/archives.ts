@@ -24,6 +24,25 @@ export interface ArchiveOperationSpec {
   maxFiles: number;
   /** Whether the operation accepts a password field. */
   usesPassword: boolean;
+  /**
+   * Value for the file input's `accept`, or undefined to accept anything.
+   *
+   * Carries MIME types as well as extensions on purpose. `accept` is matched
+   * against the type the operating system reports for a file, and a list of
+   * bare extensions leaves the browser to map them itself — which it can only
+   * do for types the OS has registered. On a machine with no 7-Zip or RAR
+   * tooling installed there is no mapping for `.7z` or `.rar`, and those files
+   * are shown greyed out and unselectable.
+   *
+   * Extensions alone are also why `.tar.gz` cannot appear here: `accept` takes
+   * a single extension per token, so a compound one matches nothing. `.gz`
+   * covers those files, because that is the only suffix the browser sees.
+   *
+   * This is a convenience filter, never a control. Uploads are validated
+   * server-side by magic bytes, which is what actually decides what is
+   * accepted.
+   */
+  accept?: string;
 }
 
 export const ARCHIVE_OPERATION_SPECS: Readonly<
@@ -38,6 +57,27 @@ export const ARCHIVE_OPERATION_SPECS: Readonly<
     minFiles: 1,
     maxFiles: 1,
     usesPassword: true,
+    accept: [
+      '.zip',
+      '.rar',
+      '.7z',
+      '.tar',
+      '.tgz',
+      '.gz',
+      'application/zip',
+      'application/x-zip-compressed',
+      'application/vnd.rar',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed',
+      'application/x-tar',
+      'application/gzip',
+      'application/x-gzip',
+      'application/x-compressed-tar',
+      // Some systems report an archive as a generic byte stream rather than a
+      // specific type. Without this they are unselectable even though the
+      // server would accept them.
+      'application/octet-stream',
+    ].join(','),
   },
   ARCHIVE: {
     id: 'ARCHIVE',

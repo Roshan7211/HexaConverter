@@ -135,11 +135,7 @@ export function ArchiveWorkspace({
           type="file"
           className="sr-only"
           multiple={multiple}
-          accept={
-            operation === 'EXTRACT'
-              ? '.zip,.rar,.7z,.tar,.tgz,.gz,.tar.gz'
-              : undefined
-          }
+          accept={spec.accept}
           onChange={(event) => {
             if (event.target.files) toolkit.addFiles(event.target.files);
             event.target.value = '';
