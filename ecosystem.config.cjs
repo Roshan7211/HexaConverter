@@ -40,8 +40,18 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3000,
         HOSTNAME: '127.0.0.1',
-        // Conversions belong to the worker app below.
-        WORKER_ENABLED: 'false',
+        // Conversions belong to the worker app below — except on a host too
+        // small to justify two Node processes, where running one that both
+        // serves and converts is the better use of the memory. Set
+        // WEB_WORKER_ENABLED=true and start only this app; the worker then
+        // starts on the first conversion, with no scheduler and no queue
+        // latency.
+        //
+        // Anything set here beats `.env`: PM2 puts this into the environment
+        // before Next loads that file, and Next does not overwrite a variable
+        // that is already set. So this must be the override point.
+        WORKER_ENABLED:
+          process.env.WEB_WORKER_ENABLED === 'true' ? 'true' : 'false',
       },
       // Next reads .env itself; this is only for values PM2 must see first.
       max_memory_restart: process.env.WEB_MAX_MEMORY || '1G',
