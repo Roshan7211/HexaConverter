@@ -258,28 +258,15 @@ export async function storeChunk(
     );
   }
 
-  // Recomputed from the set rather than incremented, so a replayed chunk does
-  // not double-count towards the total.
-  const receivedChunks = session.receivedChunks.includes(index)
-    ? session.receivedChunks
-    : [...session.receivedChunks, index].sort((a, b) => a - b);
-
-  const receivedSize = receivedChunks.reduce(
-    (total, chunkIndex) =>
-      total +
-      (chunkIndex === session.totalChunks - 1
-        ? Number(session.declaredSize) - chunkIndex * session.chunkSize
-        : session.chunkSize),
-    0,
-  );
-
-  const updated = await sessions.recordChunks(
+  // Merged into the array by the database, not here: chunks upload
+  // concurrently, and computing the new array from the snapshot this request
+  // read would let simultaneous writers overwrite each other's indexes.
+  const { receivedChunks, receivedSize } = await sessions.recordChunk(
     session.id,
-    receivedChunks,
-    receivedSize,
+    index,
   );
 
-  return toState(updated);
+  return toState({ ...session, receivedChunks, receivedSize });
 }
 
 /**
