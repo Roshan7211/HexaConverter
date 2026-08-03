@@ -22,16 +22,27 @@ import {
 // Both open a dialog and only mount for a file that has a preview URL, so
 // their code — and the dialog primitive with it — is fetched at that point
 // rather than with the row.
+//
+// The `loading` placeholder is not decoration. `previewUrl` is set the moment
+// the file is picked, which immediately hides the fallback icon on mobile,
+// while the component behind it is still being fetched. Without something
+// holding the slot the row renders 16px shorter and then grows once the chunk
+// lands — mid-upload, so it reads as the card resizing on its own. It matches
+// the thumbnails' `size-14` exactly.
+const previewSlot = () => (
+  <div className="size-14 shrink-0 animate-pulse rounded-lg border bg-muted" />
+);
+
 const ImagePreview = dynamic(
   () =>
     import('@/components/convert/image-preview').then((m) => m.ImagePreview),
-  { ssr: false },
+  { ssr: false, loading: previewSlot },
 );
 
 const MediaPreview = dynamic(
   () =>
     import('@/components/convert/media-preview').then((m) => m.MediaPreview),
-  { ssr: false },
+  { ssr: false, loading: previewSlot },
 );
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -218,11 +229,6 @@ export function FileRow({
             </p>
           ) : null}
 
-          {item.status === 'ready' && !targetFormat ? (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Choose an output format to start.
-            </p>
-          ) : null}
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
