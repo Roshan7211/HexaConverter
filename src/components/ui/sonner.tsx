@@ -10,7 +10,14 @@ export function Toaster(props: ToasterProps) {
   return (
     <Sonner
       theme={theme as ToasterProps['theme']}
-      className="toaster group"
+      // `!w-auto` below 600px undoes a bug in sonner's own stylesheet, which
+      // sets `left`, `right` *and* `width: 100%` on the fixed container at that
+      // breakpoint. Width wins over `right`, so the toaster ends up a full
+      // viewport wide starting at the left offset and hangs that same offset
+      // off the right edge — on a 412px phone the toast is cut off and its
+      // close button sits outside the card. With `width: auto` the two offsets
+      // determine the width, which is what the rule intended.
+      className="toaster group max-[600px]:!w-auto"
       position="bottom-right"
       closeButton
       toastOptions={{
