@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   AlertCircle,
   ArrowRight,
@@ -103,7 +103,9 @@ export function FileRow({
       exit={{ opacity: 0, height: 0, marginBottom: 0 }}
       transition={{ duration: 0.18 }}
       className={cn(
-        'rounded-xl border bg-card p-4',
+        // `relative` and `overflow-hidden` anchor the progress bar to the
+        // card's bottom edge and keep it inside the rounded corners.
+        'relative overflow-hidden rounded-xl border bg-card p-4',
         isError && 'border-destructive/40',
         isDone && 'border-success/40',
         isMerged && 'opacity-60',
@@ -166,7 +168,21 @@ export function FileRow({
           </div>
 
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-            <span>{formatBytes(item.size)}</span>
+            {/* While the file is in flight the status replaces the size rather
+                than joining it. Appending would risk wrapping to a second line
+                on a narrow phone, which is the height change this layout is
+                built to avoid; the size is back as soon as the job settles. */}
+            {isActive ? (
+              <span className="flex items-center gap-1.5">
+                <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+                {STATUS_COPY[item.status]}
+                {item.status !== 'queued'
+                  ? ` · ${Math.round(item.progress)}%`
+                  : null}
+              </span>
+            ) : (
+              <span>{formatBytes(item.size)}</span>
+            )}
             {isDone && item.outputSize ? (
               <>
                 <ArrowRight className="size-3" aria-hidden="true" />
@@ -174,12 +190,19 @@ export function FileRow({
                   {formatBytes(item.outputSize)}
                 </span>
                 {savings !== null && savings > 0 ? (
-                  <span className="text-success">({savings}% smaller)</span>
+                  <span className="hidden text-success min-[400px]:inline">
+                    ({savings}% smaller)
+                  </span>
                 ) : null}
               </>
             ) : null}
+            {/* Hidden on the narrowest screens: it is the least useful part of
+                the result line and the first thing that pushes it onto a
+                second row, which would change the card's height. */}
             {isDone && item.durationMs ? (
-              <span>· {formatDuration(item.durationMs)}</span>
+              <span className="hidden min-[400px]:inline">
+                · {formatDuration(item.durationMs)}
+              </span>
             ) : null}
             {item.combinedCount ? (
               <span className="text-foreground">
@@ -188,29 +211,6 @@ export function FileRow({
             ) : null}
             {isMerged ? <span>· page in the combined PDF</span> : null}
           </p>
-
-          <AnimatePresence initial={false}>
-            {isActive ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="mt-3 space-y-1.5"
-              >
-                <Progress
-                  value={item.progress}
-                  aria-label={`${STATUS_COPY[item.status]} ${item.name}`}
-                />
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Loader2 className="size-3 animate-spin" aria-hidden="true" />
-                  {STATUS_COPY[item.status]}
-                  {item.status !== 'queued'
-                    ? ` · ${Math.round(item.progress)}%`
-                    : null}
-                </p>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
 
           {item.error ? (
             <p className="mt-2 text-xs text-destructive" role="status">
@@ -273,6 +273,20 @@ export function FileRow({
           )}
         </div>
       </div>
+
+      {/* Pinned to the card's bottom edge and taken out of the flow entirely.
+          It used to sit below the metadata as a block, which grew the card by
+          ~40px the moment Convert was pressed and shrank it again on
+          completion — every row below, and the Convert button itself, jumped
+          twice per conversion. Absolute positioning keeps the card exactly the
+          same height from `ready` through to `completed`. */}
+      {isActive ? (
+        <Progress
+          value={item.progress}
+          aria-label={`${STATUS_COPY[item.status]} ${item.name}`}
+          className="absolute inset-x-0 bottom-0 h-1 rounded-none bg-transparent"
+        />
+      ) : null}
     </motion.li>
   );
 }
