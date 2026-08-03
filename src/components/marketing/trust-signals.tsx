@@ -1,13 +1,6 @@
 import Link from 'next/link';
 
-import {
-  Boxes,
-  FileCheck2,
-  GitBranch,
-  Lock,
-  Server,
-  Timer,
-} from 'lucide-react';
+import { Boxes, FileCheck2, GitBranch, Lock, Timer } from 'lucide-react';
 
 import { Reveal, RevealGroup, RevealItem } from '@/components/marketing/reveal';
 import { Badge } from '@/components/ui/badge';
@@ -40,12 +33,6 @@ const SIGNALS = [
     title: 'Deletion is scheduled, not promised',
     body: `Source files go the moment a conversion finishes. Outputs are purged by a cron job after ${LIMITS.retentionHours} hours — the same for everyone.`,
     proof: { label: 'Read the retention table', href: '/legal/privacy' },
-  },
-  {
-    icon: Server,
-    title: 'Live service status',
-    body: 'A public health endpoint reports database, storage and conversion-tooling availability. Nothing is hidden behind a status page you cannot query.',
-    proof: { label: 'Check /api/health', href: '/api/health' },
   },
   {
     icon: FileCheck2,

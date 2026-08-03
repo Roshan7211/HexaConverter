@@ -74,18 +74,6 @@ export function SiteFooter() {
             © {year} {SITE.name}. All rights reserved.
           </p>
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
-            {/*
-              Links to the live probe rather than asserting a state. Rendering
-              a green "all systems operational" from static markup would keep
-              claiming it while the service was down, and the page has not
-              checked anything — `/api/health` is the only thing that knows.
-            */}
-            <Link
-              href="/api/health"
-              className="rounded-sm underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Service status
-            </Link>
             <p>
               Developed by <span className="font-medium">HEXAVO</span>
             </p>
