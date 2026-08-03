@@ -139,6 +139,13 @@ export function Converter({
             onRetryUpload={retryUpload}
           />
 
+          {/* Deliberately not sticky.
+
+              Pinning this to the bottom of the viewport does keep it clear of
+              iOS Safari's address bar, but it then floats over the file list —
+              hiding the file the person just added, which is the one thing they
+              want to see at that moment. Shortening the dropzone lifts these
+              controls out of the browser's chrome without covering anything. */}
           <div className="rounded-xl border bg-card p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
               <div className="flex-1 space-y-2">

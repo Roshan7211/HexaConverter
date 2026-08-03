@@ -91,22 +91,26 @@ export function Dropzone({
           `motion-safe` respects a reduced-motion preference the same way. */}
       <div
         className={cn(
-          'flex flex-col items-center gap-4 px-6 py-12 text-center transition-transform duration-200 ease-out sm:py-16',
+          // Deliberately shorter on a phone. At `py-12` with a 56px icon this
+          // card ran to about a quarter of the screen, which pushed the file
+          // list and the convert controls down into the browser's own chrome
+          // once a file was added. Desktop keeps the generous target.
+          'flex flex-col items-center gap-3 px-6 py-8 text-center transition-transform duration-200 ease-out sm:gap-4 sm:py-16',
           isDragging && 'motion-safe:scale-[1.01]',
         )}
       >
         <span
           className={cn(
-            'flex size-14 items-center justify-center rounded-2xl transition-colors',
+            'flex size-12 items-center justify-center rounded-2xl transition-colors sm:size-14',
             isDragging
               ? 'bg-primary text-primary-foreground'
               : 'bg-accent text-primary',
           )}
         >
           {isDragging ? (
-            <FilePlus2 className="size-7" aria-hidden="true" />
+            <FilePlus2 className="size-6 sm:size-7" aria-hidden="true" />
           ) : (
-            <CloudUpload className="size-7" aria-hidden="true" />
+            <CloudUpload className="size-6 sm:size-7" aria-hidden="true" />
           )}
         </span>
 
