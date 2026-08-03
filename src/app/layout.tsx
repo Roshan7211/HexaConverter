@@ -22,11 +22,23 @@ const inter = Inter({
   preload: true,
 });
 
+// `optional` rather than `swap`, and preloaded rather than not.
+//
+// This font sets the format pills in the hero — above the fold, and the widest
+// row on the page. Left to `swap` it was laid out in `ui-monospace` first and
+// re-laid out when the real font arrived: the glyph widths change, the pills
+// re-wrap, and every section below them — dropzone, file list, the lot — moves
+// down the page. It was the largest layout shift on the site by some margin.
+//
+// `optional` gives the font one short window to arrive and then commits to
+// whichever is in hand for that page view, so a swap can never reflow the page.
+// `preload: true` is what makes it usually win that window; it was previously
+// off, which is why it kept losing it.
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
-  display: 'swap',
+  display: 'optional',
   variable: '--font-mono',
-  preload: false,
+  preload: true,
 });
 
 export const metadata: Metadata = {

@@ -200,18 +200,29 @@ export function FileRow({
                 <span className="font-medium text-foreground">
                   {formatBytes(item.outputSize)}
                 </span>
+                {/* Same fact, two lengths. The full phrase is what pushes this
+                    line onto a second row on a phone, and the saving is the
+                    point of the conversion — too useful to drop for the sake of
+                    the height. Narrow screens get the compact form instead. */}
                 {savings !== null && savings > 0 ? (
-                  <span className="hidden text-success min-[400px]:inline">
-                    ({savings}% smaller)
-                  </span>
+                  <>
+                    <span className="hidden text-success min-[400px]:inline min-[480px]:hidden">
+                      −{savings}%
+                    </span>
+                    <span className="hidden text-success min-[480px]:inline">
+                      ({savings}% smaller)
+                    </span>
+                  </>
                 ) : null}
               </>
             ) : null}
-            {/* Hidden on the narrowest screens: it is the least useful part of
-                the result line and the first thing that pushes it onto a
-                second row, which would change the card's height. */}
+            {/* Shown only where the result line has room for it on one row.
+                It is the least useful part of that line and the first thing to
+                push it onto a second, which changes the card's height at the
+                moment the conversion lands. 480px is where the sizes, the
+                saving and this all still fit beside a 56px thumbnail. */}
             {isDone && item.durationMs ? (
-              <span className="hidden min-[400px]:inline">
+              <span className="hidden min-[560px]:inline">
                 · {formatDuration(item.durationMs)}
               </span>
             ) : null}
@@ -231,7 +242,10 @@ export function FileRow({
 
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5">
+        {/* Fixed at the height of the tallest control it can hold (`size-10`),
+            so gaining the download button on completion cannot change the row.
+            Every variant used here — `icon` at 40px, `sm` at 36px — fits. */}
+        <div className="flex h-10 shrink-0 items-center gap-1.5">
           {/* A failed upload never produced a ticket, so the only way forward
               is to send the bytes again — offered here rather than making the
               user remove the row and find the file a second time. */}

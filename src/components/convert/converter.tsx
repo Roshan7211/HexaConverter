@@ -28,7 +28,20 @@ import { Dropzone } from '@/components/convert/dropzone';
  */
 const FileList = dynamic(
   () => import('@/components/convert/file-list').then((m) => m.FileList),
-  { ssr: false },
+  {
+    ssr: false,
+    // Reserves one card's worth of space while the chunk is in flight.
+    //
+    // The list only renders once a file exists, but its code is fetched at that
+    // same moment — so the controls below it mounted first, at the position the
+    // list was about to take, and were shoved down when the chunk landed. That
+    // was the largest remaining layout shift in the flow, and it fired right
+    // after picking a file, which is exactly when the eye is on that area.
+    //
+    // 90px is one file card: `p-4` twice over a 56px media slot. Adding several
+    // files at once still settles, but the ordinary case of one no longer does.
+    loading: () => <div className="h-[90px] rounded-xl border bg-card" />,
+  },
 );
 
 const OptionsPanel = dynamic(
