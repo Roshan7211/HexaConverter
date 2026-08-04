@@ -77,7 +77,9 @@ export function SiteHeader({ user, accountsEnabled }: SiteHeaderProps) {
       <div className="container flex h-16 items-center justify-between gap-4">
         <Link
           href="/"
-          className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          // The logo is the "go home" control on every page, and the mark is
+          // 40px tall — the extra height is invisible but thumb-sized.
+          className="flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [@media(pointer:coarse)]:min-h-11"
           aria-label="HexaConverter home"
         >
           <Logo />
@@ -205,7 +207,18 @@ export function SiteHeader({ user, accountsEnabled }: SiteHeaderProps) {
       </div>
 
       {mobileOpen ? (
-        <div id="mobile-navigation" className="glass-nav border-t md:hidden">
+        <div
+          id="mobile-navigation"
+          // The drawer scrolls itself. It opens under a 4rem sticky header and
+          // its content is taller than a phone screen, while the effect above
+          // locks the body — so without a scroller of its own the items past
+          // the fold cannot be reached at all. `dvh` rather than `vh` because
+          // Safari's toolbar shrinks the visible area after load, and `vh`
+          // would size the drawer to a viewport the reader cannot see all of.
+          // `overscroll-contain` stops a flick at either end scrolling the page
+          // behind it.
+          className="glass-nav max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t md:hidden"
+        >
           <nav
             className="container flex flex-col gap-1 py-4"
             aria-label="Mobile"

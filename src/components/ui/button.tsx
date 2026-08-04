@@ -22,11 +22,20 @@ const buttonVariants = cva(
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
       },
+      // Every size grows to at least 44px on a touch pointer. 40px is a
+      // comfortable target for a mouse and a cramped one for a thumb: Apple
+      // asks for 44pt and Android for 48dp, and the header's icon buttons —
+      // the theme toggle and the menu — were 40x40 on every phone tested.
+      //
+      // Keyed on `pointer: coarse` rather than a width breakpoint because the
+      // thing that matters is what is pointing at the screen, not how wide it
+      // is. A touch laptop gets the bigger target; a narrow desktop window
+      // keeps the tighter one.
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3 text-xs',
+        default: 'h-10 px-4 py-2 [@media(pointer:coarse)]:h-11',
+        sm: 'h-9 rounded-md px-3 text-xs [@media(pointer:coarse)]:h-11',
         lg: 'h-12 rounded-xl px-8 text-base',
-        icon: 'size-10',
+        icon: 'size-10 [@media(pointer:coarse)]:size-11',
       },
     },
     defaultVariants: {

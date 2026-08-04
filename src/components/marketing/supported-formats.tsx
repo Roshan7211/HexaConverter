@@ -99,6 +99,8 @@ export function SupportedFormats() {
                 onClick={() => setActive(category)}
                 className={cn(
                   'flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all',
+                  // 42px from padding alone, just under the 44px thumb target.
+                  '[@media(pointer:coarse)]:min-h-11',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
