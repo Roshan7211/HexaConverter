@@ -1,5 +1,7 @@
 /** Response shapes shared by the route handlers and the browser clients. */
 
+import type { PlanTier } from '@/types/plans';
+
 export interface ApiError {
   error: string;
   code: string;
@@ -27,10 +29,13 @@ export interface UploadResponse {
 }
 
 export interface LimitsResponse {
+  /** Which plan the caller is being held to right now. */
+  tier: PlanTier;
   maxFileBytes: number;
   maxBatchFiles: number;
   retentionHours: number;
   concurrentJobs: number;
+  showsAds: boolean;
   usage: { used: number; limit: number };
 }
 

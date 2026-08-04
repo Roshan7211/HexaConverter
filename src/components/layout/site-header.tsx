@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 
 import { ChevronDown, Menu, X } from 'lucide-react';
 
+import { UserMenu } from '@/components/auth/user-menu';
 import { Logo } from '@/components/layout/logo';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,14 @@ import {
 } from '@/lib/nav';
 import { cn } from '@/utils';
 
-export function SiteHeader() {
+export interface SiteHeaderProps {
+  /** The signed-in person, resolved on the server. Null when signed out. */
+  user: { email: string } | null;
+  /** False when the deployment has no Firebase configuration at all. */
+  accountsEnabled: boolean;
+}
+
+export function SiteHeader({ user, accountsEnabled }: SiteHeaderProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -157,6 +165,25 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Rendered from the server-verified session rather than from
+              Firebase's client state, so the correct control is in the first
+              paint and never flickers from signed-out to signed-in. Absent
+              entirely when accounts are not configured. */}
+          {accountsEnabled ? (
+            user ? (
+              <UserMenu email={user.email} />
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="hidden sm:inline-flex"
+              >
+                <Link href="/sign-in">Sign in</Link>
+              </Button>
+            )
+          ) : null}
+
           <ThemeToggle />
 
           <Button

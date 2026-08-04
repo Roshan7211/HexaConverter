@@ -2,22 +2,22 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { LegalPage } from '@/components/layout/legal-page';
-import { buildMetadata, SITE } from '@/lib/seo';
+import { buildMetadata } from '@/lib/seo';
 
 export const metadata: Metadata = buildMetadata({
   title: 'Cookie policy',
   description:
-    'HexaConverter uses one strictly necessary cookie and no tracking or advertising cookies.',
+    'HexaConverter sets two strictly necessary cookies of its own. Google sets advertising cookies on the free plans; Premium loads none.',
   path: '/legal/cookies',
 });
 
-const LAST_UPDATED = '2026-07-01';
+const LAST_UPDATED = '2026-08-04';
 
 export default function CookiesPage() {
   return (
     <LegalPage
       title="Cookie policy"
-      summary="We use one strictly necessary cookie and nothing else. No advertising, no cross-site tracking, no consent banner needed."
+      summary="Two strictly necessary cookies of our own. Free use is ad-supported, and Google sets its own cookies for that — Premium removes them."
       lastUpdated={LAST_UPDATED}
     >
       <h2>Cookies we set</h2>
@@ -40,19 +40,45 @@ export default function CookiesPage() {
             </td>
             <td>30 days</td>
           </tr>
+          <tr>
+            <td>hexa_session</td>
+            <td>
+              Set only if you choose to sign in. Keeps you signed in between
+              visits. It cannot be read by JavaScript, is never sent to anyone
+              else, and is deleted when you sign out.
+            </td>
+            <td>14 days, or until you sign out</td>
+          </tr>
         </tbody>
       </table>
       <p>
-        That is the entire list. There are no accounts on {SITE.name}, so there
-        is no session cookie, no sign-in cookie and nothing that identifies you
-        as a person.
+        That is the entire list. Both are strictly necessary &mdash; one to hand
+        you back your own converted file, one to keep you signed in if you asked
+        to be. Neither is set by us for advertising or analytics, and if you
+        never create an account the second is never set.
       </p>
 
       <h2>What we do not use</h2>
       <ul>
-        <li>No advertising or retargeting cookies.</li>
+        <li>
+          No advertising or retargeting cookies of our own. Google AdSense sets
+          its own cookies on the free plans, governed by{' '}
+          <a
+            href="https://policies.google.com/technologies/ads"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Google&rsquo;s advertising policies
+          </a>
+          . Premium stops the ad script loading at all.
+        </li>
         <li>No third-party analytics.</li>
-        <li>No cross-site tracking or fingerprinting.</li>
+        <li>
+          No tracking or fingerprinting of our own, on this site or across
+          others. Google&rsquo;s advertising cookies may be used to recognise a
+          browser across sites, which is why they need your consent in the UK
+          and the EEA and why Premium does not load them at all.
+        </li>
       </ul>
 
       <h2>Local storage</h2>

@@ -10,6 +10,7 @@ import { clientIp, hashIp, verifyUploadTicket } from '@/lib/security';
 import {
   checkConcurrency,
   checkQuota,
+  ownerScope,
   retentionDate,
   type Requester,
 } from '@/services/identity/identity.service';
@@ -174,7 +175,7 @@ export async function createArchiveTask(
   const [primary, ...extra] = files;
 
   const row = await jobs.create({
-    owner: { guestId: requester.guestId },
+    owner: ownerScope(requester),
     category: toPrismaCategory('archive'),
     sourceFormat: primary!.sourceFormat,
     // Extraction may deliver a single file under its own type; the worker

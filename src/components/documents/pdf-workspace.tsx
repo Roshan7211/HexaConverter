@@ -357,6 +357,38 @@ export function PdfWorkspace({ operation }: { operation: PdfOperation }) {
             </div>
           )}
 
+          {operation === 'OCR' && (
+            <div className="space-y-2">
+              <Label htmlFor="pdf-ocr-output">Give me back</Label>
+              <Select
+                value={params.ocrOutput ?? 'pdf'}
+                disabled={toolkit.busy}
+                onValueChange={(value) =>
+                  setParams({
+                    ...params,
+                    ocrOutput: value as 'text' | 'pdf',
+                  })
+                }
+              >
+                <SelectTrigger id="pdf-ocr-output">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pdf">
+                    A searchable PDF — looks identical, but selectable
+                  </SelectItem>
+                  <SelectItem value="text">
+                    Plain text — just the words
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Reading a page takes a few seconds, so a long scan is not quick.
+                The result reports how confident the engine was.
+              </p>
+            </div>
+          )}
+
           {operation === 'MERGE' && (
             <p className="text-sm text-muted-foreground sm:col-span-2">
               Pages are combined in the order shown above. Use the arrows to

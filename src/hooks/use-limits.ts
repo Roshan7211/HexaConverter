@@ -10,16 +10,20 @@ import type { LimitsResponse } from '@/types/api';
  * Limits for the current visitor.
  *
  * Converter pages are statically generated, so they render from this constant
- * and confirm it once the request resolves. The allowance is the same for
- * everyone, so the fallback is the real answer rather than a conservative
- * guess — only `usage` can differ.
+ * and correct it once the request resolves. The fallback is deliberately the
+ * *anonymous* allowance — the smallest one — so a signed-in person briefly sees
+ * limits lower than their own rather than being shown a ceiling they do not
+ * have and hitting a server refusal. Nothing here is a security boundary; the
+ * server enforces the real numbers regardless of what this says.
  */
 
 const FALLBACK: LimitsResponse = {
+  tier: 'ANONYMOUS',
   maxFileBytes: LIMITS.maxFileBytes,
   maxBatchFiles: LIMITS.maxBatchFiles,
   retentionHours: LIMITS.retentionHours,
   concurrentJobs: LIMITS.concurrentJobs,
+  showsAds: LIMITS.showsAds,
   usage: { used: 0, limit: LIMITS.jobsPerPeriod },
 };
 

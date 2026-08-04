@@ -45,7 +45,59 @@ This is the single strongest recommendation in this document. Owning Postgres
 backups yourself means owning WAL archiving, retention pruning, off-host copies,
 encryption and restore testing — every one of which fails silently.
 
-### If you self-host it
+### What this deployment actually runs
+
+Two scripts, committed alongside the application, so the procedure is the thing
+that runs rather than a description of what someone ought to do.
+
+```bash
+# Nightly, from the application directory.
+node scripts/backup-database.mjs
+
+# Any time — list what exists, then rehearse a restore into a scratch database.
+node scripts/restore-database.mjs --list
+node scripts/restore-database.mjs \
+  --to postgresql://postgres:PASSWORD@127.0.0.1:5432/hexaconverter_restore_test
+```
+
+`pg_dump --format=custom`, gzipped, uploaded to `backups/` in the same
+S3-compatible bucket the application already uses. Seven nightly copies are kept
+plus the last four Sundays, so a fault noticed a fortnight late still has
+something from before it started.
+
+Both scripts read `.env` from the working directory and upload through the SDK
+the application already depends on, so nothing extra — no `aws` CLI — has to be
+installed on the host.
+
+Add to the crontab of the user that owns the application:
+
+```cron
+30 3 * * * cd /srv/hexaconverter && /usr/bin/node scripts/backup-database.mjs >> /var/log/hexa-backup.log 2>&1
+```
+
+Two things worth knowing about these scripts specifically:
+
+**They strip Prisma's connection parameters.** `?schema=public` is not a libpq
+parameter, and `pg_dump` rejects the whole URI rather than ignoring it —
+`invalid URI query parameter: "schema"`. Since the provisioning script writes
+exactly that, an unmodified URL fails on the first run, everywhere. The schema is
+extracted and passed to `pg_dump` properly instead.
+
+**A restore will not silently target production.** `--to` is mandatory and has
+no default; a target whose database is named `hexaconverter` is refused unless
+`--i-mean-it` is passed as well. Restoring is destructive, and the one mistake
+worth engineering against is making it during an incident, at speed, into the
+wrong database.
+
+### Not yet done
+
+The dump is **not encrypted at rest**. It contains every account's email address
+— no passwords, since Firebase holds those and this database stores no
+credential of any kind, but an address list is still personal data. It currently
+relies on the bucket being private. Encrypting before upload, as the generic
+script below shows, is the next improvement.
+
+### The generic version
 
 Nightly logical dump, retained 30 days, with the copy off the database host:
 

@@ -23,6 +23,7 @@ export const pdfTaskSchema = z
     angle: z.union([z.literal(90), z.literal(180), z.literal(270)]).optional(),
     splitMode: z.enum(['pages', 'ranges']).optional(),
     compression: z.enum(['light', 'balanced', 'strong']).optional(),
+    ocrOutput: z.enum(['text', 'pdf']).optional(),
   })
   .superRefine((value, ctx) => {
     if (value.operation === 'MERGE' && value.tickets.length < 2) {

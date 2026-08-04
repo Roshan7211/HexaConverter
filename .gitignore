@@ -45,3 +45,8 @@ yarn-error.log*
 prisma/*.db
 prisma/*.db-journal
 .vercel
+
+# Tesseract language data, downloaded on first OCR run and cached in the
+# working directory. Regenerated automatically; 5 MB per language and not
+# something to carry in the repository.
+*.traineddata

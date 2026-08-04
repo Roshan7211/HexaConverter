@@ -93,26 +93,65 @@ test.describe('machine surfaces', () => {
   });
 });
 
-test.describe('authentication', () => {
-  test('dashboard redirects anonymous visitors to sign-in', async ({
+/**
+ * Accounts are optional, and a deployment can be built with no Firebase
+ * configuration at all — which is exactly what CI does. Everything asserted
+ * here therefore has to hold in both states: the pages render and route
+ * correctly whether or not sign-in is actually available, so these tests never
+ * depend on secrets being present.
+ */
+test.describe('accounts', () => {
+  test('account page redirects anonymous visitors to sign-in', async ({
     page,
   }) => {
-    await page.goto('/dashboard');
+    await page.goto('/account');
 
-    await expect(page).toHaveURL(/\/sign-in\?callbackUrl=/);
+    await expect(page).toHaveURL(/\/sign-in$/);
     await expect(
-      page.getByRole('heading', { name: /welcome back/i }),
+      page.getByRole('heading', { level: 1, name: /sign in/i }),
     ).toBeVisible();
   });
 
-  test('sign-up form validates before submitting', async ({ page }) => {
-    await page.goto('/sign-up');
+  test('sign-in and sign-up link to each other', async ({ page }) => {
+    await page.goto('/sign-in');
+    await expect(
+      page.getByText(/converting files never needs an account/i),
+    ).toBeVisible();
 
-    await page.getByLabel('Your name').fill('A');
-    await page.getByLabel('Email address').fill('not-an-email');
-    await page.getByLabel('Password').fill('short');
-    await page.getByRole('button', { name: /create account/i }).click();
+    await page.getByRole('link', { name: /create one/i }).click();
+    await expect(page).toHaveURL(/\/sign-up$/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: /create an account/i }),
+    ).toBeVisible();
+  });
+});
 
-    await expect(page.getByText(/enter your name/i)).toBeVisible();
+test.describe('pricing', () => {
+  test('every plan is shown, with limits read from the server config', async ({
+    page,
+  }) => {
+    await page.goto('/pricing');
+
+    for (const plan of ['Guest', 'Member', 'Premium']) {
+      await expect(
+        page.getByRole('heading', { level: 2, name: plan, exact: true }),
+      ).toBeVisible();
+    }
+
+    // The anonymous file ceiling, proving the table renders from `PLANS`
+    // rather than from numbers typed into the markup.
+    await expect(page.getByText('100 MB').first()).toBeVisible();
+  });
+
+  test('refund policy is reachable and names the merchant of record', async ({
+    page,
+  }) => {
+    await page.goto('/legal/refunds');
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: /refund policy/i }),
+    ).toBeVisible();
+    // Paddle's domain review looks for this acknowledgement specifically.
+    await expect(page.getByText(/merchant of record/i).first()).toBeVisible();
   });
 });

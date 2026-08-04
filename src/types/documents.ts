@@ -11,6 +11,7 @@ export const PDF_OPERATIONS = [
   'EXTRACT_PAGES',
   'ROTATE',
   'COMPRESS',
+  'OCR',
 ] as const;
 
 export type PdfOperation = (typeof PDF_OPERATIONS)[number];
@@ -29,6 +30,12 @@ export interface PdfOperationSpec {
   maxFiles: number;
   /** Whether the result may be a ZIP rather than a single PDF. */
   mayProduceArchive: boolean;
+  /**
+   * Requires a signed-in account. Not a paid gate — it exists because the
+   * operation is expensive enough that it should not be available to an
+   * anonymous visitor who can reset their allowance by clearing a cookie.
+   */
+  requiresAccount?: boolean;
 }
 
 export const PDF_OPERATION_SPECS: Readonly<
@@ -81,6 +88,21 @@ export const PDF_OPERATION_SPECS: Readonly<
     minFiles: 1,
     maxFiles: 1,
     mayProduceArchive: false,
+  },
+  OCR: {
+    id: 'OCR',
+    slug: 'ocr',
+    label: 'Make a scan searchable',
+    description:
+      'Read the text in a scanned document and give you it back as plain text, or as a PDF you can search and copy from.',
+    minFiles: 1,
+    maxFiles: 1,
+    mayProduceArchive: false,
+    // Recognition is seconds of CPU per page rather than the fractions a normal
+    // conversion needs, so it is tied to an account: the allowance then belongs
+    // to a person rather than to a cookie anyone can clear and start again.
+    // Free accounts included — it is a reason to register, not a reason to pay.
+    requiresAccount: true,
   },
 });
 

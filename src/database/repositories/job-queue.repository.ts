@@ -36,6 +36,17 @@ export interface ClaimedJobRow {
 /**
  * Atomically claims the oldest queued job for `workerId`, or returns `null`
  * when the queue is empty. Two workers racing here cannot claim the same row.
+ *
+ * Every clock here is `NOW() AT TIME ZONE 'UTC'`, never bare `NOW()`.
+ *
+ * Prisma writes `DateTime` as UTC into `timestamp without time zone`, while
+ * `NOW()` is a `timestamptz` that Postgres renders in the *session's* timezone
+ * when compared against one. On a UTC server the two agree and nothing looks
+ * wrong; on a server set to Europe/London they differ by an hour in summer, and
+ * `"expiresAt" > NOW()` starts excluding jobs that have not expired. With a
+ * one-hour retention that is every job, immediately — the queue simply stops,
+ * silently, with no error anywhere. Found exactly that way on a developer
+ * machine whose Postgres defaulted to Europe/London.
  */
 export async function claimNext(
   workerId: string,
@@ -43,14 +54,14 @@ export async function claimNext(
   const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
     UPDATE "ConversionJob"
     SET status = 'PROCESSING',
-        "lockedAt" = NOW(),
+        "lockedAt" = NOW() AT TIME ZONE 'UTC',
         "lockedBy" = ${workerId},
-        "startedAt" = COALESCE("startedAt", NOW()),
+        "startedAt" = COALESCE("startedAt", NOW() AT TIME ZONE 'UTC'),
         attempts = attempts + 1,
-        "updatedAt" = NOW()
+        "updatedAt" = NOW() AT TIME ZONE 'UTC'
     WHERE id = (
       SELECT id FROM "ConversionJob"
-      WHERE status = 'QUEUED' AND "expiresAt" > NOW()
+      WHERE status = 'QUEUED' AND "expiresAt" > NOW() AT TIME ZONE 'UTC'
       ORDER BY "createdAt" ASC
       FOR UPDATE SKIP LOCKED
       LIMIT 1

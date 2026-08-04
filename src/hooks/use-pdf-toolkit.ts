@@ -42,6 +42,8 @@ export interface ToolkitParams {
   angle: 90 | 180 | 270;
   splitMode: 'pages' | 'ranges';
   compression: 'light' | 'balanced' | 'strong';
+  /** `OCR`: a searchable PDF, or just the words. */
+  ocrOutput: 'text' | 'pdf';
 }
 
 const POLL_MS = 1_200;
@@ -67,6 +69,7 @@ export function usePdfToolkit(operation: PdfOperation, maxFileBytes: number) {
     angle: 90,
     splitMode: 'pages',
     compression: 'balanced',
+    ocrOutput: 'pdf',
   });
 
   const jobIdRef = useRef<string | null>(null);
@@ -253,6 +256,7 @@ export function usePdfToolkit(operation: PdfOperation, maxFileBytes: number) {
         ...(operation === 'COMPRESS'
           ? { compression: params.compression }
           : {}),
+        ...(operation === 'OCR' ? { ocrOutput: params.ocrOutput } : {}),
       });
 
       jobIdRef.current = job.id;

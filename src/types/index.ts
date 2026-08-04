@@ -30,4 +30,6 @@ export type {
   ResizeFit,
 } from '@/types/conversion';
 
+export { PLAN_TIERS, type PlanTier } from '@/types/plans';
+
 export type { PutOptions, StorageDriver } from '@/types/storage';

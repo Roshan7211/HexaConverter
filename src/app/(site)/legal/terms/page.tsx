@@ -11,7 +11,7 @@ export const metadata: Metadata = buildMetadata({
   path: '/legal/terms',
 });
 
-const LAST_UPDATED = '2026-07-01';
+const LAST_UPDATED = '2026-08-04';
 
 export default function TermsPage() {
   return (
@@ -63,17 +63,50 @@ export default function TermsPage() {
         <li>infringe someone else's intellectual property or privacy.</li>
       </ul>
 
-      <h2>5. No accounts</h2>
+      <h2>5. Accounts</h2>
       <p>
-        The service has no accounts. There is nothing to register for, no
-        credentials to keep secure and no profile we hold about you. Everyone
-        who opens the site gets the same service on the same terms.
+        Accounts are optional and free, and no conversion route requires one.
+        Signing in raises the limits set out on the{' '}
+        <Link href="/pricing">pricing page</Link> and adds conversion history
+        and text recognition; without one, every format is still available and
+        the same terms apply to your use of it.
+      </p>
+      <p>
+        If you do create one, you are responsible for keeping your sign-in
+        details secure and for activity carried out through it. Provide an email
+        address you control and are entitled to use. We may suspend or close an
+        account that is used to break these terms. You may close your own
+        account at any time from your account page, which deletes it
+        immediately.
       </p>
 
-      <h2>6. Service limits</h2>
+      <h2>6. Plans, payment and renewal</h2>
       <p>
-        The service is provided free of charge. There is no paid tier, no
-        billing and no payment details to give us.
+        The service can be used free of charge, with or without an account. A
+        paid plan, Premium, raises the limits described on the{' '}
+        <Link href="/pricing">pricing page</Link>. Paying never changes the
+        output: there is no watermark, no degraded quality and no conversion
+        format held back on the free plans. Text recognition needs a free
+        account, because it costs far more processing than a conversion does.
+      </p>
+      <p>
+        The free plans are supported by advertising. Premium removes it. We do
+        not give advertisers your files, and no ad is placed inside the
+        converter or over any control you need to use.
+      </p>
+      <p>
+        Premium is billed once a year and renews automatically until you cancel.
+        We will tell you before the price of a renewal changes, and you can
+        cancel at any time from your account page &mdash; access then continues
+        until the end of the term you have already paid for.
+      </p>
+      <p>
+        Our order process is conducted by our online reseller Paddle.com. Paddle
+        is the Merchant of Record for all our orders and handles all
+        customer-service enquiries relating to payments, invoices, taxes and
+        refunds. Prices include any sales tax or VAT that applies where you are.
+        Refunds are covered by the{' '}
+        <Link href="/legal/refunds">refund policy</Link>.
       </p>
       <p>
         Technical limits still apply — a maximum file size, a conversion
@@ -106,8 +139,8 @@ export default function TermsPage() {
       <h2>10. Limitation of liability</h2>
       <p>
         To the extent permitted by law, our aggregate liability arising from the
-        service is limited to USD 100. The service is free, so you have paid us
-        nothing against which to measure a larger sum. We are not liable for
+        service is limited to the greater of the amount you have paid us in the
+        twelve months before the claim, or USD 100. We are not liable for
         indirect, incidental or consequential damages, including lost data or
         lost profits. Nothing here excludes liability that cannot lawfully be
         excluded.
@@ -115,17 +148,17 @@ export default function TermsPage() {
 
       <h2>11. Termination</h2>
       <p>
-        You may stop using the service at any time; there is no account to
-        close. We may terminate access for a material breach of these terms. On
-        termination, your stored files are deleted.
+        You may stop using the service at any time, and close your account from
+        your account page if you have one. We may terminate access for a
+        material breach of these terms. On termination, your stored files are
+        deleted.
       </p>
 
       <h2>12. Changes</h2>
       <p>
         We may update these terms. Material changes will be announced with the
-        updated date above; with no accounts there is no mailing list to
-        announce them on, so this page is the notice. Continued use after a
-        change means you accept it.
+        updated date above; we have no mailing list to announce them on, so this
+        page is the notice. Continued use after a change means you accept it.
       </p>
 
       <h2>13. Contact</h2>

@@ -4,7 +4,7 @@ import { Check, Minus, Sparkles } from 'lucide-react';
 
 import { Reveal, RevealGroup, RevealItem } from '@/components/marketing/reveal';
 import { Badge } from '@/components/ui/badge';
-import { LIMITS } from '@/lib/plans';
+import { PLANS } from '@/lib/plans';
 import { TOTAL_ROUTES } from '@/services/conversion/registry';
 import { formatBytes } from '@/utils';
 
@@ -29,14 +29,14 @@ const DIFFERENTIATORS = [
     body: 'Output contains exactly what the encoder produced. No branding, no overlays, no injected metadata.',
   },
   {
-    stat: `${LIMITS.retentionHours}h`,
+    stat: `${PLANS.PREMIUM.retentionHours}h`,
     label: 'file retention',
-    body: `Source files are deleted the moment a conversion finishes. Outputs are purged automatically after ${LIMITS.retentionHours} hours, or sooner if you delete them yourself.`,
+    body: `Source files are deleted the moment a conversion finishes. Outputs are purged automatically — after ${PLANS.ANONYMOUS.retentionHours} hour without an account, up to ${PLANS.PREMIUM.retentionHours} hours on Premium — or sooner if you delete them yourself.`,
   },
   {
-    stat: `${formatBytes(LIMITS.maxFileBytes, 0)}`,
-    label: 'per file, free',
-    body: 'Convert immediately. No signup wall, no paid tier and no account — the same limits apply to everyone.',
+    stat: `${formatBytes(PLANS.ANONYMOUS.maxFileBytes, 0)}`,
+    label: 'per file, no account',
+    body: `Convert immediately, no signup wall. A free account raises it to ${formatBytes(PLANS.FREE.maxFileBytes, 0)} and keeps your history.`,
   },
 ] as const;
 
@@ -51,7 +51,7 @@ const COMPARISON = [
   { claim: 'Real encoder settings exposed', us: true, them: false },
   { claim: 'Live progress from the encoder itself', us: true, them: false },
   { claim: 'Honest error messages when a file fails', us: true, them: false },
-  { claim: 'No ads or tracking scripts', us: true, them: false },
+  { claim: 'No watermark or quality limit on any plan', us: true, them: false },
   { claim: 'Self-hostable on your own infrastructure', us: true, them: false },
 ] as const;
 

@@ -20,6 +20,39 @@ const servedOverHttps = (
   process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 ).startsWith('https://');
 
+// Read here rather than hardcoded so the policy follows the project the build
+// is actually configured against. Unset — the state before Firebase is wired
+// up — leaves the policy exactly as strict as it was.
+const firebaseAuthDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+
+// Likewise for payments: no Paddle token configured, no Paddle in the policy.
+// `cdn.paddle.com` serves Paddle.js itself; the wildcard covers the checkout
+// overlay and the endpoints it calls, which differ between sandbox and live
+// and are not published as a fixed list.
+const paddleHosts = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN
+  ? ' https://cdn.paddle.com https://*.paddle.com'
+  : '';
+
+// Advertising is the largest deliberate widening of this policy, so it is tied
+// to the publisher ID being set: a build without one keeps the policy exactly
+// as strict as it was. AdSense serves the tag, the creatives and the frames
+// from separate Google domains, and its consent tooling from a fourth.
+const adsenseHosts = process.env.NEXT_PUBLIC_ADSENSE_CLIENT
+  ? [
+      'https://pagead2.googlesyndication.com',
+      'https://*.googlesyndication.com',
+      'https://*.googleadservices.com',
+      'https://*.doubleclick.net',
+      'https://*.google.com',
+      'https://fundingchoicesmessages.google.com',
+      // Called by the ad script at runtime for invalid-traffic checks. Not in
+      // any of Google's published integration docs — found by loading real ads
+      // and reading the violations.
+      'https://*.adtrafficquality.google',
+    ].join(' ')
+  : '';
+const ads = adsenseHosts ? ` ${adsenseHosts}` : '';
+
 // Content-Security-Policy. `unsafe-inline` on styles is required by Tailwind's
 // runtime-injected style attributes and Framer Motion's inline transforms.
 const csp = [
@@ -28,17 +61,46 @@ const csp = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "img-src 'self' data: blob:",
+  `img-src 'self' data: blob:${ads}`,
   "media-src 'self' blob:",
   "font-src 'self' data:",
-  "style-src 'self' 'unsafe-inline'",
+  // Paddle serves the overlay's stylesheet from their CDN as well as the
+  // script. Undocumented, and found by loading a real checkout and watching for
+  // violations — without it the overlay opens completely unstyled.
+  `style-src 'self' 'unsafe-inline'${paddleHosts}`,
   // Next.js injects a small inline bootstrap script; nonce-based CSP is not
   // compatible with static prerendering, so hashes/`unsafe-inline` are used and
   // scoped tightly to self.
+  // Paddle.js is the one script deliberately loaded from a third party. Paddle
+  // require it to come from their CDN rather than being bundled, so that a
+  // security fix reaches every integration without anyone redeploying.
   process.env.NODE_ENV === 'production'
-    ? "script-src 'self' 'unsafe-inline'"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "connect-src 'self'",
+    ? `script-src 'self' 'unsafe-inline'${paddleHosts}${ads}`
+    : `script-src 'self' 'unsafe-inline' 'unsafe-eval'${paddleHosts}${ads}`,
+  // Firebase Authentication talks to two Google endpoints from the browser:
+  // `identitytoolkit` for sign-in, registration and profile changes, and
+  // `securetoken` to exchange the refresh token roughly hourly. Without these
+  // the SDK fails silently at the network layer and sign-in simply never
+  // resolves. The SDK itself is bundled from npm, so `script-src` stays
+  // `'self'` — nothing is fetched from a CDN.
+  `connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com${
+    firebaseAuthDomain ? ` https://${firebaseAuthDomain}` : ''
+  }${paddleHosts}${ads}`,
+  // Google sign-in renders a helper iframe served from the Firebase auth
+  // domain, and `accounts.google.com` inside it. Both are needed for the popup
+  // and redirect flows; omit them and the provider button opens a blank frame.
+  // Falls back to `'none'` when Firebase is not configured, which is the
+  // current state and the stricter one.
+  // The Paddle checkout is a cross-origin overlay iframe. Its own contents are
+  // governed by Paddle's policy, not this one — all we have to permit is the
+  // frame itself.
+  firebaseAuthDomain || paddleHosts || ads
+    ? `frame-src 'self'${
+        firebaseAuthDomain
+          ? ` https://${firebaseAuthDomain} https://accounts.google.com`
+          : ''
+      }${paddleHosts}${ads}`
+    : "frame-src 'none'",
   "worker-src 'self' blob:",
   ...(servedOverHttps ? ['upgrade-insecure-requests'] : []),
 ]
@@ -101,6 +163,13 @@ const nextConfig = {
     'node-unrar-js',
     '@prisma/client',
     'bcryptjs',
+    // tesseract.js spawns a Node worker by path, resolved relative to its own
+    // module location. Bundled, that path lands inside `.next/` where the
+    // script does not exist and OCR dies with MODULE_NOT_FOUND the first time
+    // it is used — after the pages have already been rendered, so the job sits
+    // in PROCESSING rather than failing cleanly.
+    'tesseract.js',
+    'tesseract.js-core',
   ],
 
   experimental: {
@@ -112,14 +181,14 @@ const nextConfig = {
     // check, and then fails to parse — reported to the user as a corrupt or
     // password-protected document, which it is not.
     //
-    // Kept a little above MAX_UPLOAD_BYTES (512 MB) so the application's own
+    // Kept a little above MAX_UPLOAD_BYTES (2 GB) so the application's own
     // limit is the one that rejects an oversized upload, with a message that
     // says so.
     //
     // Note this is a self-hosted setting. Vercel caps a serverless function's
     // request body at 4.5 MB regardless of what is configured here, so large
     // uploads there need the chunked session endpoints, not this route.
-    middlewareClientMaxBodySize: 544 * 1024 * 1024,
+    middlewareClientMaxBodySize: 2100 * 1024 * 1024,
   },
 
   // Packages in `serverExternalPackages` are not bundled, so they have to be
@@ -145,6 +214,11 @@ const nextConfig = {
       './node_modules/@napi-rs/canvas/**',
       './node_modules/@napi-rs/canvas-linux-x64-gnu/**',
       './node_modules/docx/**',
+      // Same class of problem: the worker script and the WASM core are reached
+      // by constructed path rather than by import, so nothing links to them and
+      // the tracer leaves both behind.
+      './node_modules/tesseract.js/**',
+      './node_modules/tesseract.js-core/**',
     ],
   },
 

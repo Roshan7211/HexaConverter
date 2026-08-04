@@ -239,7 +239,6 @@ export function FileRow({
               {item.error}
             </p>
           ) : null}
-
         </div>
 
         {/* Fixed at the height of the tallest control it can hold (`size-10`),

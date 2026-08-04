@@ -49,17 +49,17 @@ signed download URL ◄─────────────────┘
 
 Layout:
 
-| Path                            | Contents                                                      |
-| ------------------------------- | ------------------------------------------------------------- |
-| `src/app/(site)/(marketing)`    | Home, features, FAQ, about, contact                           |
-| `src/app/(site)/(tools)`        | Category converters and one landing page per conversion route |
-| `src/app/(site)/legal`          | Privacy, terms, cookies                                       |
-| `src/app/api`                   | Route handlers                                                |
-| `src/services/conversion`       | Format registry, option schemas and the five engines          |
-| `src/services/documents`        | PDF rasterising, text extraction and the Word writer          |
-| `src/services/storage`          | Driver interface with local-filesystem and S3 implementations |
-| `src/services/jobs/queue.service.ts` | Job claiming, retries, lease recovery and retention purging |
-| `src/components/ui`             | shadcn/ui primitives                                          |
+| Path                                 | Contents                                                      |
+| ------------------------------------ | ------------------------------------------------------------- |
+| `src/app/(site)/(marketing)`         | Home, features, FAQ, about, contact                           |
+| `src/app/(site)/(tools)`             | Category converters and one landing page per conversion route |
+| `src/app/(site)/legal`               | Privacy, terms, cookies                                       |
+| `src/app/api`                        | Route handlers                                                |
+| `src/services/conversion`            | Format registry, option schemas and the five engines          |
+| `src/services/documents`             | PDF rasterising, text extraction and the Word writer          |
+| `src/services/storage`               | Driver interface with local-filesystem and S3 implementations |
+| `src/services/jobs/queue.service.ts` | Job claiming, retries, lease recovery and retention purging   |
+| `src/components/ui`                  | shadcn/ui primitives                                          |
 
 The **format registry** (`src/services/conversion/registry.ts`) is the single source
 of truth. The picker UI, the SEO landing pages, `/api/formats` and the
@@ -132,16 +132,16 @@ Every variable is documented in [`.env.example`](.env.example) and validated at
 startup by `src/lib/env.ts` — the process fails fast with a specific message
 rather than misbehaving later. The essentials:
 
-| Variable                     | Purpose                                                    |
-| ---------------------------- | ---------------------------------------------------------- |
-| `DATABASE_URL`               | PostgreSQL connection string                               |
-| `DOWNLOAD_URL_SECRET`        | HMAC key for download links and upload tickets (32+ chars) |
-| `CRON_SECRET`                | Bearer token for `/api/cron/*`                             |
-| `STORAGE_DRIVER`             | `local` in development, `s3` in production                 |
-| `S3_*`                       | Bucket, credentials and endpoint for S3-compatible storage |
-| `MAX_UPLOAD_BYTES`           | Hard ceiling applied before the service limit              |
-| `WORKER_ENABLED`             | Whether this instance processes jobs                       |
-| `SMTP_*`                     | Outbound mail for the contact form                         |
+| Variable              | Purpose                                                    |
+| --------------------- | ---------------------------------------------------------- |
+| `DATABASE_URL`        | PostgreSQL connection string                               |
+| `DOWNLOAD_URL_SECRET` | HMAC key for download links and upload tickets (32+ chars) |
+| `CRON_SECRET`         | Bearer token for `/api/cron/*`                             |
+| `STORAGE_DRIVER`      | `local` in development, `s3` in production                 |
+| `S3_*`                | Bucket, credentials and endpoint for S3-compatible storage |
+| `MAX_UPLOAD_BYTES`    | Hard ceiling applied before the service limit              |
+| `WORKER_ENABLED`      | Whether this instance processes jobs                       |
+| `SMTP_*`              | Outbound mail for the contact form                         |
 
 A production build refuses `STORAGE_DRIVER=local` unless you explicitly set
 `ALLOW_LOCAL_STORAGE_IN_PRODUCTION=true`, which is appropriate only for a single
@@ -211,22 +211,22 @@ See [SECURITY.md](SECURITY.md) for reporting a vulnerability.
 
 ## API
 
-| Method   | Route                           | Purpose                                         |
-| -------- | ------------------------------- | ----------------------------------------------- |
-| `POST`   | `/api/uploads`                  | Stream a file; returns a signed ticket          |
-| `POST`   | `/api/jobs`                     | Queue a conversion from a ticket                |
-| `GET`    | `/api/jobs`                     | List your conversions (cursor-paginated)        |
-| `GET`    | `/api/jobs/:id`                 | Poll one conversion                             |
-| `POST`   | `/api/jobs/:id/cancel`          | Cancel a queued or running conversion           |
-| `DELETE` | `/api/jobs/:id`                 | Delete a conversion and its files               |
-| `GET`    | `/api/jobs/:id/download`        | Download with a signed token                    |
-| `GET`    | `/api/formats`                  | Formats and routes available on this deploy     |
-| `GET`    | `/api/limits`                   | Limits and remaining allowance for the caller   |
-| `POST`   | `/api/tools/pdf`                | Queue a PDF toolkit task                        |
-| `POST`   | `/api/tools/archive`            | Queue an archive toolkit task                   |
-| `DELETE` | `/api/storage`                  | Delete every file stored for this browser       |
-| `GET`    | `/api/health`                   | Readiness probe (503 when a dependency is down) |
-| `POST`   | `/api/contact`                  | Contact form                                    |
+| Method   | Route                    | Purpose                                         |
+| -------- | ------------------------ | ----------------------------------------------- |
+| `POST`   | `/api/uploads`           | Stream a file; returns a signed ticket          |
+| `POST`   | `/api/jobs`              | Queue a conversion from a ticket                |
+| `GET`    | `/api/jobs`              | List your conversions (cursor-paginated)        |
+| `GET`    | `/api/jobs/:id`          | Poll one conversion                             |
+| `POST`   | `/api/jobs/:id/cancel`   | Cancel a queued or running conversion           |
+| `DELETE` | `/api/jobs/:id`          | Delete a conversion and its files               |
+| `GET`    | `/api/jobs/:id/download` | Download with a signed token                    |
+| `GET`    | `/api/formats`           | Formats and routes available on this deploy     |
+| `GET`    | `/api/limits`            | Limits and remaining allowance for the caller   |
+| `POST`   | `/api/tools/pdf`         | Queue a PDF toolkit task                        |
+| `POST`   | `/api/tools/archive`     | Queue an archive toolkit task                   |
+| `DELETE` | `/api/storage`           | Delete every file stored for this browser       |
+| `GET`    | `/api/health`            | Readiness probe (503 when a dependency is down) |
+| `POST`   | `/api/contact`           | Contact form                                    |
 
 Example:
 
