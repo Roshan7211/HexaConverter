@@ -84,7 +84,10 @@ export async function recordChunk(id: string, index: number) {
         ), 0)
         FROM unnest(merged.chunks) AS c
       ),
-      "updatedAt" = NOW()
+      -- UTC, to match what Prisma writes into these columns. See the note on
+      -- claimNext in job-queue.repository.ts: a bare NOW() is session-local and
+      -- silently skews every comparison on a non-UTC server.
+      "updatedAt" = NOW() AT TIME ZONE 'UTC'
     FROM (
       SELECT ARRAY(
         SELECT DISTINCT x FROM unnest(
