@@ -43,13 +43,37 @@ export type JobRow = Prisma.ConversionJobGetPayload<{
   select: typeof jobSelect;
 }>;
 
-/** Scopes a query to a single owner — the opaque guest id of one browser. */
+/**
+ * Scopes a query to a single owner.
+ *
+ * A conversion is owned by a browser, and additionally by an account once one
+ * claims it. Both are carried here because a signed-in person legitimately has
+ * two sets of work in play: everything their account has ever claimed, and
+ * anything started in this browser that has not been claimed yet.
+ */
 export interface OwnerScope {
   guestId: string;
+  /** Set only when the requester is signed in. */
+  userId?: string | null;
 }
 
+/**
+ * Once a job is claimed by an account it belongs to the account, not the
+ * browser — so a signed-out visitor sharing that browser never sees it. That is
+ * the reason for the explicit `userId: null` on the anonymous branch; without
+ * it, signing out would leave someone else's history on screen.
+ */
 export function ownerFilter(owner: OwnerScope): Prisma.ConversionJobWhereInput {
-  return { guestId: owner.guestId };
+  if (!owner.userId) {
+    return { guestId: owner.guestId, userId: null };
+  }
+
+  return {
+    OR: [
+      { userId: owner.userId },
+      { guestId: owner.guestId, userId: null },
+    ],
+  };
 }
 
 export function findOwned(id: string, owner: OwnerScope) {
@@ -138,6 +162,9 @@ export function create(data: CreateJobData) {
   return prisma.conversionJob.create({
     data: {
       guestId: data.owner.guestId,
+      // Owned by the account from the outset when one is signed in, so the job
+      // is already in their history rather than waiting to be claimed.
+      userId: data.owner.userId ?? null,
       status: JobStatus.QUEUED,
       category: data.category,
       sourceFormat: data.sourceFormat,
@@ -187,4 +214,36 @@ export function findPurgeableKeys(owner: OwnerScope) {
 
 export function removeMany(ids: string[]) {
   return prisma.conversionJob.deleteMany({ where: { id: { in: ids } } });
+}
+
+/**
+ * Attaches this browser's unclaimed conversions to an account, on sign-in.
+ *
+ * What makes "convert a file, then decide to sign up" work: the conversions
+ * already on screen become part of the new account rather than being stranded
+ * behind a cookie. Jobs already owned by an account are excluded, so signing in
+ * on a shared or borrowed browser cannot take over someone else's work.
+ *
+ * Returns how many were claimed.
+ */
+export async function claimGuestJobs(
+  guestId: string,
+  userId: string,
+): Promise<number> {
+  const { count } = await prisma.conversionJob.updateMany({
+    where: { guestId, userId: null },
+    data: { userId },
+  });
+
+  return count;
+}
+
+/** History for the account page. Only ever the account's own conversions. */
+export function listForUser(userId: string, limit: number) {
+  return prisma.conversionJob.findMany({
+    where: { userId },
+    select: jobSelect,
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
 }

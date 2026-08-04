@@ -12,7 +12,7 @@ import {
   routeSlug,
 } from '@/services/conversion/registry';
 import { CATEGORIES, type Category } from '@/types/conversion';
-import { LIMITS } from '@/lib/plans';
+import { PLANS } from '@/lib/plans';
 import { breadcrumbSchema, buildMetadata, howToSchema } from '@/lib/seo';
 
 /**
@@ -198,8 +198,9 @@ export default async function CategoryConverterPage({ params }: PageProps) {
                 The source file is deleted as soon as conversion finishes.
               </li>
               <li>
-                Converted files are removed automatically after{' '}
-                {LIMITS.retentionHours} hours.
+                Converted files are removed automatically &mdash; after{' '}
+                {PLANS.ANONYMOUS.retentionHours} hour without an account, up to{' '}
+                {PLANS.PREMIUM.retentionHours} hours on Premium.
               </li>
               <li>Download links are signed and expire in minutes.</li>
             </ul>

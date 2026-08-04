@@ -4,7 +4,7 @@ import { Boxes, FileCheck2, GitBranch, Lock, Timer } from 'lucide-react';
 
 import { Reveal, RevealGroup, RevealItem } from '@/components/marketing/reveal';
 import { Badge } from '@/components/ui/badge';
-import { LIMITS } from '@/lib/plans';
+import { PLANS } from '@/lib/plans';
 import { FORMATS, TOTAL_ROUTES } from '@/services/conversion/registry';
 
 /**
@@ -31,7 +31,7 @@ const SIGNALS = [
   {
     icon: Timer,
     title: 'Deletion is scheduled, not promised',
-    body: `Source files go the moment a conversion finishes. Outputs are purged by a cron job after ${LIMITS.retentionHours} hours — the same for everyone.`,
+    body: `Source files go the moment a conversion finishes. Outputs are purged by a cron job when their retention window ends — ${PLANS.ANONYMOUS.retentionHours} hour without an account, ${PLANS.PREMIUM.retentionHours} on Premium.`,
     proof: { label: 'Read the retention table', href: '/legal/privacy' },
   },
   {

@@ -25,10 +25,12 @@ export const GET = withErrorHandling('GET /api/limits', async (request) => {
   const quota = await checkQuota(requester);
 
   return ok({
+    tier: requester.tier,
     maxFileBytes: requester.limits.maxFileBytes,
     maxBatchFiles: requester.limits.maxBatchFiles,
     retentionHours: requester.limits.retentionHours,
     concurrentJobs: requester.limits.concurrentJobs,
+    showsAds: requester.limits.showsAds,
     usage: { used: quota.used, limit: quota.limit },
   });
 });

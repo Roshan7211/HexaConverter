@@ -54,6 +54,7 @@ export const PDF_TOOL_LINKS: readonly NavLink[] = PDF_OPERATIONS.map(
 
 export const PRIMARY_LINKS: readonly NavLink[] = [
   { label: 'Features', href: '/features' },
+  { label: 'Pricing', href: '/pricing' },
   { label: 'FAQ', href: '/faq' },
 ];
 
@@ -121,6 +122,7 @@ export const FOOTER_SECTIONS: readonly {
     links: [
       { label: 'Privacy policy', href: '/legal/privacy' },
       { label: 'Terms of service', href: '/legal/terms' },
+      { label: 'Refund policy', href: '/legal/refunds' },
       { label: 'Cookie policy', href: '/legal/cookies' },
     ],
   },

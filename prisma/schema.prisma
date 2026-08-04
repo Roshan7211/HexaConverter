@@ -1,11 +1,14 @@
 // HexaConverter — data model
 // Provider: PostgreSQL 14+
 //
-// The service is free, has no accounts and asks for nothing about the person
-// using it. What is stored is therefore only what a conversion in flight needs
-// to exist at all: the job, the upload it came from and the objects on disk.
-// Every row here is transient and swept by the retention pass; none of it
-// describes a user.
+// The service is free and asks for nothing about the person using it. Anything
+// a conversion needs in order to exist at all — the job, the upload it came
+// from, the objects on disk — is transient and swept by the retention pass, and
+// belongs to an opaque per-browser cookie that names nobody.
+//
+// `User` is the one exception, and is strictly opt-in: it exists only for
+// someone who chose to sign in, holds no credentials, and is not required to
+// convert a file. Everything else in this schema works with it absent.
 
 generator client {
   provider = "prisma-client-js"
@@ -55,6 +58,7 @@ enum DocumentOperation {
   EXTRACT_PAGES
   ROTATE
   COMPRESS
+  OCR
 }
 
 /// Archive operations that are not a plain format-to-format conversion.
@@ -118,6 +122,17 @@ model ConversionJob {
   /// from one another without anyone having to identify themselves.
   guestId String
 
+  /// Set only once a signed-in person owns this conversion, either because they
+  /// were signed in when they started it or because they signed in afterwards
+  /// and it was claimed from this browser. Null is the ordinary case.
+  ///
+  /// `SetNull` on delete rather than cascade: closing an account should not
+  /// destroy work that is still in flight or still downloadable. The row falls
+  /// back to being owned by the browser alone and expires on its own schedule,
+  /// which is exactly where it started.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   status   JobStatus    @default(QUEUED)
   category FileCategory
 
@@ -169,6 +184,7 @@ model ConversionJob {
   updatedAt  DateTime  @updatedAt
 
   @@index([guestId, createdAt])
+  @@index([userId, createdAt])
   @@index([status, createdAt])
   @@index([expiresAt])
 }
@@ -194,4 +210,135 @@ model ContactMessage {
   createdAt DateTime      @default(now())
 
   @@index([status, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+
+/// What an account is entitled to. `ANONYMOUS` is not stored on anyone — a
+/// visitor without an account has no row at all — but it is named here so the
+/// enum matches the tiers in `src/lib/plans.ts` and nothing has to translate
+/// between two vocabularies.
+enum PlanTier {
+  ANONYMOUS
+  FREE
+  PREMIUM
+}
+
+/// A person who chose to sign in. Accounts are strictly opt-in: conversion
+/// stays anonymous and free without one, and nothing here is required to use
+/// the service.
+///
+/// Credentials are deliberately absent. Firebase Authentication holds the
+/// password, hashes it, and handles reset, verification and any second factor,
+/// so this table never sees one — a breach of this database exposes no way to
+/// sign in as anybody. What is stored is the minimum needed to attach work and
+/// a subscription to a person: the Firebase UID to join on, and a cached copy
+/// of the profile so ordinary pages do not have to call Google to render a
+/// name.
+///
+/// The cached fields go stale if the profile changes elsewhere; they are
+/// refreshed on sign-in, and the Firebase record remains the source of truth.
+/// Deleting an account has to remove the Firebase user *and* this row —
+/// removing one and leaving the other is the failure mode to watch for.
+model User {
+  id String @id @default(cuid())
+
+  /// Firebase Authentication UID. The join key for everything this person owns,
+  /// and stable across email or provider changes — which is why rows key on it
+  /// rather than on the address.
+  firebaseUid String @unique
+
+  /// Cached from the Firebase profile. Unique because the project is configured
+  /// to allow one account per address; drop the constraint if that is ever
+  /// relaxed to let a person hold separate password and Google identities.
+  email         String  @unique
+  emailVerified Boolean @default(false)
+  displayName   String?
+  photoUrl      String?
+
+  /// Current entitlement. Set to `PREMIUM` by a completed purchase, and back to
+  /// `FREE` when one lapses; until billing exists it is only ever changed by
+  /// hand. Never `ANONYMOUS` — an account is by definition not anonymous.
+  planTier PlanTier @default(FREE)
+
+  /// When the current premium term ends. Null on a free account. Read as the
+  /// authority on whether premium is still live, so a lapsed subscription
+  /// degrades on its own even if nothing has processed the expiry yet.
+  premiumUntil DateTime?
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  /// Last time a session was established, for dormant-account cleanup.
+  lastSeenAt DateTime?
+
+  /// Conversions this person owns. Claimed from the browser on sign-in, so
+  /// history survives changing device or clearing cookies.
+  conversions ConversionJob[]
+
+  subscriptions Subscription[]
+
+  @@index([email])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELLED
+}
+
+/// The billing record behind a premium account.
+///
+/// Kept separate from `User.planTier` on purpose. The tier is what the service
+/// enforces right now; this is the history of why — what was bought, when, for
+/// how much, and what Paddle currently thinks of it. Collapsing the two would
+/// mean a refund dispute or a failed renewal had nowhere to be recorded.
+///
+/// Paddle is the merchant of record, so no card detail, address or tax figure
+/// is ever stored here — only the identifiers needed to reconcile an account
+/// with a transaction on Paddle's side.
+model Subscription {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Paddle's own subscription id (`sub_...`). Unique because one Paddle
+  /// subscription must never map to two rows — it is the key incoming webhooks
+  /// are matched on.
+  paddleSubscriptionId String  @unique
+  paddleCustomerId     String?
+  /// The price that was bought (`pri_...`), kept so a later price change does
+  /// not rewrite what this person actually agreed to.
+  paddlePriceId        String?
+
+  status SubscriptionStatus @default(ACTIVE)
+
+  /// End of the paid term. Copied onto `User.premiumUntil`, which is what the
+  /// entitlement check actually reads.
+  currentPeriodEnd DateTime?
+  /// Set when a cancellation is scheduled; access continues until the term ends.
+  cancelledAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+/// Every webhook Paddle has delivered, by its own event id.
+///
+/// Paddle retries until it gets a 200, and a retry of "subscription activated"
+/// must not extend somebody's term a second time. Recording the id before
+/// acting, and refusing to act twice on the same one, is what makes these
+/// handlers idempotent — the alternative is an outage turning into free months.
+model ProcessedWebhook {
+  /// Paddle's `event_id` (`evt_...`).
+  eventId    String   @id
+  eventType  String
+  receivedAt DateTime @default(now())
+
+  @@index([receivedAt])
 }

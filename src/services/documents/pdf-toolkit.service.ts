@@ -9,7 +9,18 @@ import { PDFDocument, degrees } from 'pdf-lib';
 
 import { logger } from '@/lib/logger';
 import { requirementPath, runCommand } from '@/services/conversion/binaries';
-import { compressPdfByRasterising } from '@/services/documents/pdf-raster.service';
+import {
+  compressPdfByRasterising,
+  rasterisePdf,
+} from '@/services/documents/pdf-raster.service';
+import {
+  joinPageText,
+  meanConfidence,
+  mergePagePdfs,
+  OCR_DPI,
+  recognisePages,
+  type OcrOutput,
+} from '@/services/documents/ocr.service';
 import {
   groupConsecutive,
   resolvePages,
@@ -57,6 +68,10 @@ export interface PdfParams {
   splitMode?: 'pages' | 'ranges';
   /** `COMPRESS`: how aggressive to be. */
   compression?: 'light' | 'balanced' | 'strong';
+  /** `OCR`: plain text, or a PDF with a searchable text layer. */
+  ocrOutput?: OcrOutput;
+  /** `OCR`: Tesseract language code, e.g. `eng`. */
+  ocrLanguage?: string;
 }
 
 export interface PdfTaskResult {
@@ -403,6 +418,71 @@ async function compress(task: PdfTaskInput): Promise<PdfTaskResult> {
   };
 }
 
+/**
+ * Reads the text in a scanned document.
+ *
+ * A scan is a picture of a page: there is no text in the file to extract, which
+ * is why `pdftotext` returns nothing from one. So each page is rendered to an
+ * image and recognised.
+ *
+ * Progress is reported per page rather than in one jump, because a twenty-page
+ * scan takes minutes and a bar that sits at 8% for three of them looks broken.
+ */
+async function ocr(task: PdfTaskInput): Promise<PdfTaskResult> {
+  const output: OcrOutput = task.params.ocrOutput ?? 'pdf';
+
+  task.onProgress(5);
+
+  const bytes = await readFile(task.inputPaths[0]!);
+  const rendered = await rasterisePdf(
+    bytes,
+    'png',
+    { dpi: OCR_DPI, pages: task.params.pages },
+    (done, total) => task.onProgress(5 + Math.round((done / total) * 25)),
+  );
+
+  const results = await recognisePages(
+    rendered.map((page) => ({ image: page.data })),
+    {
+      output,
+      language: task.params.ocrLanguage,
+      signal: task.signal,
+      onPage: (done, total) =>
+        task.onProgress(30 + Math.round((done / total) * 65)),
+    },
+  );
+
+  const confidence = meanConfidence(results);
+
+  if (output === 'text') {
+    const text = joinPageText(results);
+
+    if (text.trim().length === 0) {
+      throw new ConversionError(
+        'No readable text was found. The scan may be too faint, too low-resolution, or in a language this tool does not read yet.',
+      );
+    }
+
+    await writeFile(task.outputPath, text, 'utf8');
+
+    return {
+      outputPath: task.outputPath,
+      mime: 'text/plain; charset=utf-8',
+      detail: `${results.length} page${results.length === 1 ? '' : 's'} read · ${confidence}% confidence`,
+      stem: 'recognised-text',
+    };
+  }
+
+  await writeFile(task.outputPath, Buffer.from(await mergePagePdfs(results)));
+
+  return {
+    outputPath: task.outputPath,
+    mime: 'application/pdf',
+    detail: `${results.length} page${results.length === 1 ? '' : 's'} now searchable · ${confidence}% confidence`,
+    stem: 'searchable',
+  };
+}
+
 const OPERATIONS: Record<
   PdfOperation,
   (task: PdfTaskInput) => Promise<PdfTaskResult>
@@ -412,6 +492,7 @@ const OPERATIONS: Record<
   EXTRACT_PAGES: extractPages,
   ROTATE: rotate,
   COMPRESS: compress,
+  OCR: ocr,
 };
 
 export async function runPdfOperation(

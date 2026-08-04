@@ -7,6 +7,7 @@
  */
 
 export * from '@/api/schemas/archives.schema';
+export * from '@/api/schemas/auth.schema';
 export * from '@/api/schemas/common';
 export * from '@/api/schemas/contact.schema';
 export * from '@/api/schemas/documents.schema';

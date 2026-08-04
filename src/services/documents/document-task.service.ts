@@ -9,6 +9,7 @@ import { clientIp, hashIp, verifyUploadTicket } from '@/lib/security';
 import {
   checkConcurrency,
   checkQuota,
+  ownerScope,
   retentionDate,
   type Requester,
 } from '@/services/identity/identity.service';
@@ -44,6 +45,8 @@ export interface CreateTaskInput {
     angle?: 90 | 180 | 270;
     splitMode?: 'pages' | 'ranges';
     compression?: 'light' | 'balanced' | 'strong';
+    ocrOutput?: 'text' | 'pdf';
+    ocrLanguage?: string;
   };
   requester: Requester;
   headers: Headers;
@@ -54,6 +57,22 @@ export async function createDocumentTask(
 ): Promise<CreateTaskResult> {
   const spec = PDF_OPERATION_SPECS[input.operation];
   const { requester } = input;
+
+  // 0. Entitlement, before anything else is read or verified.
+  //
+  // Checked here rather than in the route handler, and certainly not in the
+  // browser: this service is the single path every document task takes, so a
+  // gate here cannot be stepped around by calling the API directly. The tier
+  // comes from the session the server resolved, never from the request.
+  if (spec.requiresAccount && requester.tier === 'ANONYMOUS') {
+    return {
+      ok: false,
+      failure: {
+        code: 'unsupported',
+        message: `${spec.label} needs an account — a free one is enough. Reading a scan takes real processing time per page, so the allowance has to belong to a person rather than to a cookie.`,
+      },
+    };
+  }
 
   // 1. Every ticket must be authentic, owned by this requester, and a PDF.
   const resolved = input.tickets.map((ticket) =>
@@ -133,7 +152,7 @@ export async function createDocumentTask(
   const [primary, ...extra] = files;
 
   const row = await jobs.create({
-    owner: { guestId: requester.guestId },
+    owner: ownerScope(requester),
     category: toPrismaCategory('document'),
     sourceFormat: 'pdf',
     // Split may emit a ZIP; the worker records the real output type when it

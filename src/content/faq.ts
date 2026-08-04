@@ -1,5 +1,5 @@
 import type { FaqEntry } from '@/components/marketing/faq-section';
-import { LIMITS } from '@/lib/plans';
+import { PLANS } from '@/lib/plans';
 import { formatBytes } from '@/utils';
 
 /** Canonical FAQ content, reused by the FAQ page and its structured data. */
@@ -7,11 +7,11 @@ import { formatBytes } from '@/utils';
 export const GENERAL_FAQ: readonly FaqEntry[] = [
   {
     question: 'Do I need an account to convert a file?',
-    answer: `No — there are no accounts at all. The service is free for everyone: convert up to ${LIMITS.jobsPerPeriod.toLocaleString()} files a month, ${formatBytes(LIMITS.maxFileBytes, 0)} each. Nothing to sign up for, and nothing to sign in to.`,
+    answer: `No. Without one you get ${PLANS.ANONYMOUS.jobsPerPeriod} conversions a day at up to ${formatBytes(PLANS.ANONYMOUS.maxFileBytes, 0)} each. A free account raises that to ${PLANS.FREE.jobsPerPeriod} a month at ${formatBytes(PLANS.FREE.maxFileBytes, 0)}, removes the ads and keeps your history in one place. Premium removes the limit entirely.`,
   },
   {
     question: 'How long are my files stored?',
-    answer: `The source file is deleted as soon as its conversion finishes. The converted file is kept for ${LIMITS.retentionHours} hours so you can download it, then removed automatically by a scheduled cleanup job. You can also delete it yourself at any time.`,
+    answer: `The source file is deleted as soon as its conversion finishes. The converted file is kept so you can download it — ${PLANS.ANONYMOUS.retentionHours} hour without an account, ${PLANS.FREE.retentionHours} hours with a free one, ${PLANS.PREMIUM.retentionHours} hours on Premium — then removed automatically by a scheduled cleanup job. You can also delete it yourself at any time.`,
   },
   {
     question: 'Is there a watermark on converted files?',
@@ -25,7 +25,7 @@ export const GENERAL_FAQ: readonly FaqEntry[] = [
   },
   {
     question: 'How large a file can I convert?',
-    answer: `Up to ${formatBytes(LIMITS.maxFileBytes, 0)} per file, for everyone. Very large media files take proportionally longer to encode, and the progress bar reports real progress rather than an estimate.`,
+    answer: `${formatBytes(PLANS.ANONYMOUS.maxFileBytes, 0)} without an account, ${formatBytes(PLANS.FREE.maxFileBytes, 0)} with a free one, and ${formatBytes(PLANS.PREMIUM.maxFileBytes, 0)} on Premium. Very large media files take proportionally longer to encode, and the progress bar reports real progress rather than an estimate.`,
   },
   {
     question: 'Why did my conversion fail?',
@@ -34,7 +34,7 @@ export const GENERAL_FAQ: readonly FaqEntry[] = [
   },
   {
     question: 'Can I convert several files at once?',
-    answer: `Yes — up to ${LIMITS.maxBatchFiles} files in one batch, with ${LIMITS.concurrentJobs} converting in parallel. Every file in a batch shares the same output format and settings, and each reports its own progress.`,
+    answer: `Yes — ${PLANS.ANONYMOUS.maxBatchFiles} files in a batch without an account, ${PLANS.FREE.maxBatchFiles} with a free one, and ${PLANS.PREMIUM.maxBatchFiles} on Premium. Every file in a batch shares the same output format and settings, and each reports its own progress.`,
   },
   {
     question: 'Is my data used for anything else?',

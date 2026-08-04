@@ -129,6 +129,28 @@ const FAQ_FOR: Record<
         'The stronger settings downsample images, so yes — that is the trade. "Light" preserves print quality; "Strong" targets the smallest file for screen viewing.',
     },
   ],
+  OCR: [
+    {
+      question: 'What does this actually do?',
+      answer:
+        'A scanned page is a photograph of text, not text — which is why searching or copying from one finds nothing. This reads the characters in the image and gives them back to you, either as plain text or as the same PDF with an invisible text layer behind the scan, so it looks identical but can be searched, selected and copied.',
+    },
+    {
+      question: 'How accurate is it?',
+      answer:
+        'On a clean 200 DPI scan of ordinary printed text, typically well above 90%. Faint photocopies, tight columns, handwriting and unusual fonts are much harder. Every result reports its own confidence score so you know what you are looking at rather than having to guess.',
+    },
+    {
+      question: 'Which languages are supported?',
+      answer:
+        'English at the moment. The engine supports many more and others will follow — tell us which you need through the contact form.',
+    },
+    {
+      question: 'Why do I need an account?',
+      answer:
+        'A free one is enough — there is nothing to pay. Recognition is genuinely expensive: every page is rendered to an image and analysed, which takes seconds of processor time per page rather than the fractions a normal conversion needs. Tying it to an account means the allowance belongs to a person rather than to a cookie that can be cleared and started again.',
+    },
+  ],
 };
 
 export default async function PdfToolPage({ params }: PageProps) {

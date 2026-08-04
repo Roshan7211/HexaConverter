@@ -9,6 +9,7 @@ import { clientIp, hashIp, verifyUploadTicket } from '@/lib/security';
 import {
   checkConcurrency,
   checkQuota,
+  ownerScope,
   retentionDate,
   type Requester,
 } from '@/services/identity/identity.service';
@@ -228,7 +229,7 @@ export async function createConversionJob(
   }
 
   const row = await jobs.create({
-    owner: { guestId: requester.guestId },
+    owner: ownerScope(requester),
     category: toPrismaCategory(sourceSpec.category),
     sourceFormat: ticket.sourceFormat,
     targetFormat,

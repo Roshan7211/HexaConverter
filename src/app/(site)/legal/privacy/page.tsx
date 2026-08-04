@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { LegalPage } from '@/components/layout/legal-page';
-import { LIMITS } from '@/lib/plans';
+import { PLANS } from '@/lib/plans';
 import { buildMetadata, SITE } from '@/lib/seo';
 import { SUPPORT_EMAIL } from '@/lib/contact';
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = buildMetadata({
   path: '/legal/privacy',
 });
 
-const LAST_UPDATED = '2026-08-01';
+const LAST_UPDATED = '2026-08-03';
 
 export default function PrivacyPage() {
   return (
@@ -30,7 +30,8 @@ export default function PrivacyPage() {
         <li>Source files are deleted as soon as the conversion finishes.</li>
         <li>
           Converted files are deleted automatically when their retention window
-          ends, {LIMITS.retentionHours} hours after the conversion.
+          ends &mdash; {PLANS.ANONYMOUS.retentionHours} hour without an account,
+          up to {PLANS.PREMIUM.retentionHours} hours on Premium.
         </li>
         <li>
           We store a salted hash of your IP address, never the address itself.
@@ -40,9 +41,20 @@ export default function PrivacyPage() {
           no sharing of your data for anyone else&rsquo;s marketing.
         </li>
         <li>
-          There are no accounts. We never ask for your name, your email address
-          or a password in order to convert a file, so there is no profile to
-          hold and nothing to delete.
+          Converting a file never requires an account. We do not ask for your
+          name, your email address or a password in order to convert anything.
+        </li>
+        <li>
+          You may create an account if you want one. It is entirely optional,
+          and the only personal data it holds is your email address. Sign-in is
+          handled by Google Firebase Authentication, which means we never see or
+          store your password. You can close the account at any time and
+          everything it holds is deleted immediately.
+        </li>
+        <li>
+          If you buy Premium, we never see your card details. Paddle takes the
+          payment as Merchant of Record; all we keep is which account is paid up
+          and until when.
         </li>
       </ul>
 
@@ -100,11 +112,34 @@ export default function PrivacyPage() {
         upload only files you are entitled to share.
       </p>
 
-      <h3>Account data &mdash; none</h3>
+      <h3>Account data &mdash; only if you create one</h3>
       <p>
-        {SITE.name} has no accounts. There is no sign-up, no sign-in and no
-        subscription, so we hold no email address, no display name, no password
-        and no payment details. The service is free to everyone who opens it.
+        Accounts are optional. The service is free to everyone who opens it, and
+        every conversion works without signing in. If you do create an account,
+        we store your email address, whether that address has been confirmed,
+        and a display picture and name if your sign-in provider supplies one.
+        Nothing else.
+      </p>
+      <p>
+        <strong>We never see your password.</strong> Sign-in is handled by Google
+        Firebase Authentication, which holds and hashes the password itself. Our
+        database contains no credential of any kind, so it cannot be breached out
+        of it. If you sign in with Google, we receive only the email address and
+        basic profile that Google returns.
+      </p>
+      <h3>Payment data &mdash; only if you buy Premium</h3>
+      <p>
+        <strong>We never see your card details.</strong> Payment is handled
+        entirely by Paddle, who act as the Merchant of Record: they take the
+        payment, hold the card or PayPal details, and charge and remit any VAT
+        or sales tax that applies where you are.
+      </p>
+      <p>
+        What reaches us is only what is needed to know which account is paid up:
+        the identifiers Paddle assigns to your subscription and customer record,
+        which price was bought, the status of the subscription and the date the
+        current term ends. No card number, no billing address, no tax figure and
+        no transaction amount is stored here.
       </p>
 
       <h3>Technical data</h3>
@@ -124,20 +159,24 @@ export default function PrivacyPage() {
 
       <h3>Cookies</h3>
       <p>
-        We set one strictly necessary cookie: an opaque random identifier that
-        lets your browser download the file it just converted. It names no
-        person and is linked to nothing else. There are no advertising or
-        analytics cookies. The <Link href="/legal/cookies">cookie policy</Link>{' '}
-        lists every one of them by name, purpose and lifetime.
+        We set only strictly necessary cookies. One is an opaque random
+        identifier that lets your browser download the file it just converted; it
+        names no person and is linked to nothing else. The other is set only if
+        you sign in, keeps you signed in, and cannot be read by JavaScript. There
+        are no advertising or analytics cookies. The{' '}
+        <Link href="/legal/cookies">cookie policy</Link> lists every one of them
+        by name, purpose and lifetime.
       </p>
 
       <h2>Why we are allowed to process it</h2>
       <p>
         Where the GDPR or UK GDPR applies, we rely on: performance of a contract
-        to carry out the conversion you asked for; legitimate interests for
-        abuse prevention, security logging and service reliability; and legal
-        obligation where retention is required by law. We do not rely on
-        consent-based tracking, because we do not track.
+        to carry out the conversion you asked for, to run your account and to
+        supply a subscription you have paid for; legitimate interests for abuse
+        prevention, security logging and service reliability; and legal
+        obligation where retention is required by law, including the records tax
+        law requires of a sale. We do not rely on consent-based tracking, because
+        we do not track.
       </p>
 
       <h2>Retention and deletion</h2>
@@ -156,7 +195,12 @@ export default function PrivacyPage() {
           </tr>
           <tr>
             <td>Converted output file</td>
-            <td>{LIMITS.retentionHours} hours, or until you delete it</td>
+            <td>
+              {PLANS.ANONYMOUS.retentionHours} hour without an account,{' '}
+              {PLANS.FREE.retentionHours} hours with a free one,{' '}
+              {PLANS.PREMIUM.retentionHours} on Premium &mdash; or until you
+              delete it
+            </td>
           </tr>
           <tr>
             <td>Incomplete or abandoned upload</td>
@@ -170,8 +214,15 @@ export default function PrivacyPage() {
             <td>30 days</td>
           </tr>
           <tr>
-            <td>Account data</td>
-            <td>Not applicable &mdash; there are no accounts</td>
+            <td>Account data, if you created an account</td>
+            <td>Until you close the account, then deleted immediately</td>
+          </tr>
+          <tr>
+            <td>Subscription record, if you bought Premium</td>
+            <td>
+              Deleted with the account. Paddle keeps its own transaction and
+              invoice records for as long as tax law requires them
+            </td>
           </tr>
           <tr>
             <td>Messages sent through the contact form</td>
@@ -182,9 +233,18 @@ export default function PrivacyPage() {
 
       <h2>Deleting your data</h2>
       <p>
-        There is no account to delete, and nothing that identifies you is stored
-        in the first place. Your files are removed on the schedule above without
-        you having to ask.
+        If you never created an account, there is nothing to delete: nothing that
+        identifies you was stored in the first place, and your files are removed
+        on the schedule above without you having to ask.
+      </p>
+      <p>
+        If you did create one, go to{' '}
+        <a href="/account">your account page</a> and choose{' '}
+        <strong>Close account permanently</strong>. That deletes your sign-in
+        credential at Firebase and your record here at the same time, straight
+        away and without needing to contact us. It cannot be undone. Your
+        converted files are unaffected either way, because they were never
+        attached to your account &mdash; they expire on the schedule above.
       </p>
       <p>
         If you would rather not wait, the archive and PDF tools include a
@@ -225,6 +285,21 @@ export default function PrivacyPage() {
             <td>Email delivery</td>
             <td>Delivers replies to messages you send us</td>
           </tr>
+          <tr>
+            <td>Authentication &mdash; Google Firebase Authentication</td>
+            <td>
+              Holds your email address and password, and sends verification and
+              password-reset emails. Only involved if you create an account
+            </td>
+          </tr>
+          <tr>
+            <td>Payments &mdash; Paddle.com Market Ltd</td>
+            <td>
+              Merchant of Record. Takes the payment, holds the card or PayPal
+              details, issues the invoice and handles refunds. Only involved if
+              you buy Premium
+            </td>
+          </tr>
         </tbody>
       </table>
       <p>
@@ -236,9 +311,11 @@ export default function PrivacyPage() {
       <h2>International transfers</h2>
       <p>
         Our providers may process data outside your country, including outside
-        the EEA and the UK. Where that happens we rely on the transfer
-        safeguards offered by those providers, such as the European
-        Commission&rsquo;s standard contractual clauses.
+        the EEA and the UK. In particular, if you create an account, Google
+        Firebase Authentication stores your email address and password on
+        infrastructure located in the United States. Where that happens we rely
+        on the transfer safeguards offered by those providers, such as the
+        European Commission&rsquo;s standard contractual clauses.
       </p>
 
       <h2>Your rights</h2>
@@ -263,9 +340,10 @@ export default function PrivacyPage() {
         by the object store. Download links are signed with an HMAC bound to a
         single conversion and expire within minutes, so a link cannot be guessed
         or replayed indefinitely. Conversions run in isolated temporary
-        directories that are removed after each job. There are no passwords to
-        protect, because there are no accounts. See the{' '}
-        <Link href="/faq">FAQ</Link> for more detail.
+        directories that are removed after each job. We hold no passwords to
+        protect: authentication is delegated to Google Firebase, and sessions on
+        this site use a cookie that JavaScript cannot read and that we can revoke
+        server-side. See the <Link href="/faq">FAQ</Link> for more detail.
       </p>
       <p>
         No service can promise perfect security. If we discover a breach
@@ -285,9 +363,8 @@ export default function PrivacyPage() {
       <h2>Changes</h2>
       <p>
         If this policy changes materially we will update the date above. We have
-        no mailing list to announce it on &mdash; there are no accounts &mdash;
-        so this page is the notice. We keep it at a stable address so that it
-        can be linked from Google Play and elsewhere.
+        no mailing list to announce it on, so this page is the notice. We keep it
+        at a stable address so that it can be linked from elsewhere.
       </p>
     </LegalPage>
   );

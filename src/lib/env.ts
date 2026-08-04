@@ -43,7 +43,7 @@ const serverSchema = z
       .int()
       .positive()
       .max(5 * 1024 * 1024 * 1024)
-      .default(512 * 1024 * 1024),
+      .default(2 * 1024 * 1024 * 1024),
     FILE_RETENTION_HOURS: z.coerce.number().int().min(1).max(720).default(24),
     WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(2),
     WORKER_ENABLED: booleanish.default('true'),

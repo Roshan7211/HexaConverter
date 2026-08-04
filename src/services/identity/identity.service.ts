@@ -5,8 +5,18 @@ import { cookies } from 'next/headers';
 import { JobStatus } from '@prisma/client';
 
 import { serverEnv } from '@/lib/env';
-import { LIMITS, USAGE_PERIOD_DAYS, type Limits } from '@/lib/plans';
+import { currentUser } from '@/lib/firebase/session';
+import {
+  limitsFor,
+  PLANS,
+  type Limits,
+  type PlanTier,
+} from '@/lib/plans';
 import * as jobs from '@/database/repositories/job.repository';
+import {
+  findByFirebaseUid,
+  type UserRecord,
+} from '@/database/repositories/user.repository';
 import {
   createGuestId,
   GUEST_COOKIE,
@@ -17,23 +27,70 @@ import {
 /**
  * Requester identity and quota enforcement.
  *
- * The service has no accounts, so a requester is only ever a browser. Each one
+ * A requester is always a browser, and sometimes also an account. Every visitor
  * gets an opaque, http-only cookie holding a random id — enough to keep one
- * visitor's conversions private from another's and to hold everyone to the same
- * allowance, and nothing more. The value identifies no person, is never joined
- * to anything, and expires on its own.
+ * visitor's conversions private from another's, identifying no person. Signing
+ * in adds an account id alongside it, which is what lets history follow someone
+ * to another device.
+ *
+ * Anonymous use is unchanged by any of this: with no session cookie the
+ * requester is exactly what it always was.
  */
 
 export interface Requester {
   /** Opaque per-browser id from the guest cookie. */
   guestId: string;
+  /** Local account id, when signed in. Null for anonymous visitors. */
+  userId: string | null;
+  /** Which rung of the ladder this request is entitled to. */
+  tier: PlanTier;
   /** Stable owner key used for signing storage tickets. */
   ownerKey: string;
   limits: Limits;
 }
 
-function requesterFor(guestId: string): Requester {
-  return { guestId, ownerKey: `g:${guestId}`, limits: LIMITS };
+/**
+ * Entitlement is derived, never read straight off the row.
+ *
+ * A premium account whose term has ended is treated as free from the instant it
+ * lapses, without waiting for anything to process the expiry. That way a failed
+ * renewal, a webhook that never arrived or a cron that did not run degrades the
+ * account quietly instead of handing out paid limits indefinitely.
+ */
+function tierFor(account: UserRecord | null): PlanTier {
+  if (!account) return 'ANONYMOUS';
+
+  const livePremium =
+    account.planTier === 'PREMIUM' &&
+    account.premiumUntil !== null &&
+    account.premiumUntil.getTime() > Date.now();
+
+  return livePremium ? 'PREMIUM' : 'FREE';
+}
+
+/**
+ * The owner key deliberately stays bound to the browser even when signed in.
+ * It signs storage tickets issued before sign-in, and re-keying them mid-upload
+ * would invalidate a transfer already in progress.
+ */
+function requesterFor(guestId: string, account: UserRecord | null): Requester {
+  const tier = tierFor(account);
+
+  return {
+    guestId,
+    userId: account?.id ?? null,
+    tier,
+    ownerKey: `g:${guestId}`,
+    limits: limitsFor(tier),
+  };
+}
+
+/** The signed-in account for this request, or null. */
+async function currentAccount(): Promise<UserRecord | null> {
+  const session = await currentUser();
+  if (!session) return null;
+
+  return findByFirebaseUid(session.firebaseUid);
 }
 
 /**
@@ -44,8 +101,9 @@ function requesterFor(guestId: string): Requester {
 export async function resolveRequester(): Promise<Requester> {
   const store = await cookies();
   const existing = store.get(GUEST_COOKIE)?.value;
+  const account = await currentAccount();
 
-  if (isValidGuestId(existing)) return requesterFor(existing);
+  if (isValidGuestId(existing)) return requesterFor(existing, account);
 
   const guestId = createGuestId();
   store.set(GUEST_COOKIE, guestId, {
@@ -56,7 +114,7 @@ export async function resolveRequester(): Promise<Requester> {
     maxAge: GUEST_COOKIE_MAX_AGE,
   });
 
-  return requesterFor(guestId);
+  return requesterFor(guestId, account);
 }
 
 /** Read-only variant for server components, which cannot set cookies. */
@@ -64,12 +122,14 @@ export async function peekRequester(): Promise<Requester | null> {
   const store = await cookies();
   const existing = store.get(GUEST_COOKIE)?.value;
 
-  return isValidGuestId(existing) ? requesterFor(existing) : null;
+  return isValidGuestId(existing)
+    ? requesterFor(existing, await currentAccount())
+    : null;
 }
 
 /** Narrows the requester to the owner scope the repositories expect. */
 export function ownerScope(requester: Requester): jobs.OwnerScope {
-  return { guestId: requester.guestId };
+  return { guestId: requester.guestId, userId: requester.userId };
 }
 
 export interface QuotaVerdict {
@@ -86,9 +146,8 @@ export interface QuotaVerdict {
  */
 export async function checkQuota(requester: Requester): Promise<QuotaVerdict> {
   const limit = requester.limits.jobsPerPeriod;
-  const periodStart = new Date(
-    Date.now() - USAGE_PERIOD_DAYS * 24 * 60 * 60 * 1000,
-  );
+  const days = requester.limits.periodDays;
+  const periodStart = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
   const used = await jobs.countForOwner(ownerScope(requester), {
     createdAt: { gte: periodStart },
@@ -96,13 +155,23 @@ export async function checkQuota(requester: Requester): Promise<QuotaVerdict> {
   });
 
   if (used >= limit) {
+    // Says what to do about it, and says it differently at each rung. A
+    // premium user who somehow reaches the fair-use ceiling is not being
+    // upsold anything — the honest answer there is when it resets.
+    const nextStep =
+      requester.tier === 'ANONYMOUS'
+        ? ` Creating a free account raises this to ${PLANS.FREE.jobsPerPeriod} a month.`
+        : requester.tier === 'FREE'
+          ? ' Premium removes the limit.'
+          : '';
+
+    const window = days === 1 ? '24 hours' : `${days} days`;
+
     return {
       allowed: false,
       used,
       limit,
-      // There is nothing to upsell: the allowance is the same for everyone, so
-      // the honest message is when it resets, not what to buy.
-      reason: `You have used all ${limit.toLocaleString()} conversions in the last ${USAGE_PERIOD_DAYS} days. The allowance is a rolling window, so it frees up as older conversions age out.`,
+      reason: `You have used all ${limit.toLocaleString()} conversions in the last ${window}. The allowance is a rolling window, so it frees up as older conversions age out.${nextStep}`,
     };
   }
 
