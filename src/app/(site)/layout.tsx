@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
 
+import { AdSenseScript } from '@/components/ads/adsense-script';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { isAdminConfigured } from '@/lib/firebase/admin';
 import { currentUser } from '@/lib/firebase/session';
+import { limitsFor } from '@/lib/plans';
+import { currentTier } from '@/services/identity/identity.service';
 
 /**
  * Public site shell.
@@ -23,8 +26,19 @@ export default async function SiteLayout({
   // someone who is already signed in, on every page load.
   const user = await currentUser();
 
+  // Entitlement only, resolved from the account rather than the guest cookie.
+  // Someone who has just signed up has a session but no guest id yet, and
+  // reading ownership here would call them anonymous and show them advertising
+  // their plan says they should never see.
+  const tier = await currentTier();
+
+  const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+  const showAds = Boolean(adsenseClient) && limitsFor(tier).showsAds;
+
   return (
     <div className="flex min-h-dvh flex-col">
+      {showAds ? <AdSenseScript client={adsenseClient!} /> : null}
+
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>

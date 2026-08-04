@@ -51,7 +51,7 @@ const COMPARISON = [
   { claim: 'Real encoder settings exposed', us: true, them: false },
   { claim: 'Live progress from the encoder itself', us: true, them: false },
   { claim: 'Honest error messages when a file fails', us: true, them: false },
-  { claim: 'No ads or tracking scripts', us: true, them: false },
+  { claim: 'Ad-free with a free account', us: true, them: false },
   { claim: 'Self-hostable on your own infrastructure', us: true, them: false },
 ] as const;
 

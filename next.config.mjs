@@ -33,6 +33,26 @@ const paddleHosts = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN
   ? ' https://cdn.paddle.com https://*.paddle.com'
   : '';
 
+// Advertising is the largest deliberate widening of this policy, so it is tied
+// to the publisher ID being set: a build without one keeps the policy exactly
+// as strict as it was. AdSense serves the tag, the creatives and the frames
+// from separate Google domains, and its consent tooling from a fourth.
+const adsenseHosts = process.env.NEXT_PUBLIC_ADSENSE_CLIENT
+  ? [
+      'https://pagead2.googlesyndication.com',
+      'https://*.googlesyndication.com',
+      'https://*.googleadservices.com',
+      'https://*.doubleclick.net',
+      'https://*.google.com',
+      'https://fundingchoicesmessages.google.com',
+      // Called by the ad script at runtime for invalid-traffic checks. Not in
+      // any of Google's published integration docs — found by loading real ads
+      // and reading the violations.
+      'https://*.adtrafficquality.google',
+    ].join(' ')
+  : '';
+const ads = adsenseHosts ? ` ${adsenseHosts}` : '';
+
 // Content-Security-Policy. `unsafe-inline` on styles is required by Tailwind's
 // runtime-injected style attributes and Framer Motion's inline transforms.
 const csp = [
@@ -41,7 +61,7 @@ const csp = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "img-src 'self' data: blob:",
+  `img-src 'self' data: blob:${ads}`,
   "media-src 'self' blob:",
   "font-src 'self' data:",
   // Paddle serves the overlay's stylesheet from their CDN as well as the
@@ -55,8 +75,8 @@ const csp = [
   // require it to come from their CDN rather than being bundled, so that a
   // security fix reaches every integration without anyone redeploying.
   process.env.NODE_ENV === 'production'
-    ? `script-src 'self' 'unsafe-inline'${paddleHosts}`
-    : `script-src 'self' 'unsafe-inline' 'unsafe-eval'${paddleHosts}`,
+    ? `script-src 'self' 'unsafe-inline'${paddleHosts}${ads}`
+    : `script-src 'self' 'unsafe-inline' 'unsafe-eval'${paddleHosts}${ads}`,
   // Firebase Authentication talks to two Google endpoints from the browser:
   // `identitytoolkit` for sign-in, registration and profile changes, and
   // `securetoken` to exchange the refresh token roughly hourly. Without these
@@ -65,7 +85,7 @@ const csp = [
   // `'self'` — nothing is fetched from a CDN.
   `connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com${
     firebaseAuthDomain ? ` https://${firebaseAuthDomain}` : ''
-  }${paddleHosts}`,
+  }${paddleHosts}${ads}`,
   // Google sign-in renders a helper iframe served from the Firebase auth
   // domain, and `accounts.google.com` inside it. Both are needed for the popup
   // and redirect flows; omit them and the provider button opens a blank frame.
@@ -74,12 +94,12 @@ const csp = [
   // The Paddle checkout is a cross-origin overlay iframe. Its own contents are
   // governed by Paddle's policy, not this one — all we have to permit is the
   // frame itself.
-  firebaseAuthDomain || paddleHosts
+  firebaseAuthDomain || paddleHosts || ads
     ? `frame-src 'self'${
         firebaseAuthDomain
           ? ` https://${firebaseAuthDomain} https://accounts.google.com`
           : ''
-      }${paddleHosts}`
+      }${paddleHosts}${ads}`
     : "frame-src 'none'",
   "worker-src 'self' blob:",
   ...(servedOverHttps ? ['upgrade-insecure-requests'] : []),

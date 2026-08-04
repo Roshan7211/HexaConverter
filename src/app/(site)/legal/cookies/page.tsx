@@ -17,7 +17,7 @@ export default function CookiesPage() {
   return (
     <LegalPage
       title="Cookie policy"
-      summary="We use strictly necessary cookies and nothing else. No advertising, no cross-site tracking, no consent banner needed."
+      summary="Two strictly necessary cookies of our own. Visitors without an account also see Google advertising, which sets its own — signing in removes it."
       lastUpdated={LAST_UPDATED}
     >
       <h2>Cookies we set</h2>
@@ -54,13 +54,24 @@ export default function CookiesPage() {
       <p>
         That is the entire list. Both are strictly necessary &mdash; one to hand
         you back your own converted file, one to keep you signed in if you asked
-        to be. Neither is used for advertising or analytics, and if you never
-        create an account the second is never set.
+        to be. Neither is set by us for advertising or analytics, and if you
+        never create an account the second is never set.
       </p>
 
       <h2>What we do not use</h2>
       <ul>
-        <li>No advertising or retargeting cookies.</li>
+        <li>
+          No advertising or retargeting cookies of our own. Google AdSense sets
+          its own cookies for visitors without an account, governed by{' '}
+          <a
+            href="https://policies.google.com/technologies/ads"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Google&rsquo;s advertising policies
+          </a>
+          . Signing in stops the ad script loading at all.
+        </li>
         <li>No third-party analytics.</li>
         <li>No cross-site tracking or fingerprinting.</li>
       </ul>

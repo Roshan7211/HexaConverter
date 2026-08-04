@@ -127,6 +127,19 @@ export function ownerScope(requester: Requester): jobs.OwnerScope {
   return { guestId: requester.guestId, userId: requester.userId };
 }
 
+/**
+ * The plan tier for this request, for callers that only need entitlement.
+ *
+ * Deliberately independent of the guest cookie. `peekRequester` returns null
+ * when there is no guest id — which is the ordinary state of someone who has
+ * just signed up and not converted anything yet — and treating that as
+ * anonymous would show advertising to a signed-in visitor who is entitled to
+ * none. Ownership needs a browser; entitlement only needs an account.
+ */
+export async function currentTier(): Promise<PlanTier> {
+  return tierFor(await currentAccount());
+}
+
 export interface QuotaVerdict {
   allowed: boolean;
   reason?: string;
