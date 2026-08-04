@@ -15,7 +15,7 @@ import { cn, formatBytes } from '@/utils';
 export const metadata: Metadata = buildMetadata({
   title: 'Pricing',
   description:
-    'Convert files free without an account. A free account raises every limit and removes the ads. Premium is £9.99 a year for 2 GB files and no monthly limit.',
+    'Convert files free without an account. A free account raises every limit and adds conversion history. Premium is £9.99 a year for 2 GB files, no monthly limit and no ads.',
   path: '/pricing',
 });
 

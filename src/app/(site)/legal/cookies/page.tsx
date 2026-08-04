@@ -17,7 +17,7 @@ export default function CookiesPage() {
   return (
     <LegalPage
       title="Cookie policy"
-      summary="Two strictly necessary cookies of our own. Visitors without an account also see Google advertising, which sets its own — signing in removes it."
+      summary="Two strictly necessary cookies of our own. Free use is ad-supported, and Google sets its own cookies for that — Premium removes them."
       lastUpdated={LAST_UPDATED}
     >
       <h2>Cookies we set</h2>
@@ -62,7 +62,7 @@ export default function CookiesPage() {
       <ul>
         <li>
           No advertising or retargeting cookies of our own. Google AdSense sets
-          its own cookies for visitors without an account, governed by{' '}
+          its own cookies on the free plans, governed by{' '}
           <a
             href="https://policies.google.com/technologies/ads"
             rel="noopener noreferrer"
@@ -70,7 +70,7 @@ export default function CookiesPage() {
           >
             Google&rsquo;s advertising policies
           </a>
-          . Signing in stops the ad script loading at all.
+          . Premium stops the ad script loading at all.
         </li>
         <li>No third-party analytics.</li>
         <li>No cross-site tracking or fingerprinting.</li>

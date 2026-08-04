@@ -60,8 +60,10 @@ export const PLANS: Record<PlanTier, Limits> = {
   },
 
   /**
-   * Free, with an account. Ten times the allowance, five times the file size
-   * and no advertising, so registering is obviously worth doing.
+   * Free, with an account. Ten times the allowance, five times the file size,
+   * conversion history that follows you between devices, and text recognition —
+   * enough that registering is obviously worth doing. Advertising still shows;
+   * removing it is what Premium is for.
    */
   FREE: {
     maxFileBytes: 500 * MB,
@@ -70,7 +72,7 @@ export const PLANS: Record<PlanTier, Limits> = {
     maxBatchFiles: 15,
     retentionHours: 24,
     concurrentJobs: 2,
-    showsAds: false,
+    showsAds: true,
     priorityQueue: false,
   },
 

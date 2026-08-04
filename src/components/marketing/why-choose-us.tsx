@@ -36,7 +36,7 @@ const DIFFERENTIATORS = [
   {
     stat: `${formatBytes(PLANS.ANONYMOUS.maxFileBytes, 0)}`,
     label: 'per file, no account',
-    body: `Convert immediately, no signup wall. A free account raises it to ${formatBytes(PLANS.FREE.maxFileBytes, 0)} and removes the ads.`,
+    body: `Convert immediately, no signup wall. A free account raises it to ${formatBytes(PLANS.FREE.maxFileBytes, 0)} and keeps your history.`,
   },
 ] as const;
 
@@ -51,7 +51,7 @@ const COMPARISON = [
   { claim: 'Real encoder settings exposed', us: true, them: false },
   { claim: 'Live progress from the encoder itself', us: true, them: false },
   { claim: 'Honest error messages when a file fails', us: true, them: false },
-  { claim: 'Ad-free with a free account', us: true, them: false },
+  { claim: 'No watermark or quality limit on any plan', us: true, them: false },
   { claim: 'Self-hostable on your own infrastructure', us: true, them: false },
 ] as const;
 

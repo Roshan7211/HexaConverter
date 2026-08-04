@@ -7,7 +7,7 @@ import { formatBytes } from '@/utils';
 export const GENERAL_FAQ: readonly FaqEntry[] = [
   {
     question: 'Do I need an account to convert a file?',
-    answer: `No. Without one you get ${PLANS.ANONYMOUS.jobsPerPeriod} conversions a day at up to ${formatBytes(PLANS.ANONYMOUS.maxFileBytes, 0)} each. A free account raises that to ${PLANS.FREE.jobsPerPeriod} a month at ${formatBytes(PLANS.FREE.maxFileBytes, 0)}, removes the ads and keeps your history in one place. Premium removes the limit entirely.`,
+    answer: `No. Without one you get ${PLANS.ANONYMOUS.jobsPerPeriod} conversions a day at up to ${formatBytes(PLANS.ANONYMOUS.maxFileBytes, 0)} each. A free account raises that to ${PLANS.FREE.jobsPerPeriod} a month at ${formatBytes(PLANS.FREE.maxFileBytes, 0)}, keeps your history in one place and unlocks text recognition. Premium removes the limit entirely.`,
   },
   {
     question: 'How long are my files stored?',

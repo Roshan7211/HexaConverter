@@ -37,10 +37,10 @@ export default function PrivacyPage() {
           We store a salted hash of your IP address, never the address itself.
         </li>
         <li>
-          Visitors without an account are shown advertising supplied by Google
-          AdSense. Signing in removes it &mdash; a free account is enough. There
-          is no third-party analytics, no data sale, and we never share your
-          files or your conversions with anyone for marketing.
+          Free use, with or without an account, is supported by advertising
+          supplied by Google AdSense. Premium removes it. There is no
+          third-party analytics, no data sale, and we never share your files or
+          your conversions with anyone for marketing.
         </li>
         <li>
           Converting a file never requires an account. We do not ask for your
