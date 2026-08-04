@@ -7,11 +7,11 @@ import { buildMetadata } from '@/lib/seo';
 export const metadata: Metadata = buildMetadata({
   title: 'Cookie policy',
   description:
-    'HexaConverter uses only strictly necessary cookies and no tracking or advertising cookies.',
+    'HexaConverter sets two strictly necessary cookies of its own. Google sets advertising cookies on the free plans; Premium loads none.',
   path: '/legal/cookies',
 });
 
-const LAST_UPDATED = '2026-08-03';
+const LAST_UPDATED = '2026-08-04';
 
 export default function CookiesPage() {
   return (
@@ -73,7 +73,12 @@ export default function CookiesPage() {
           . Premium stops the ad script loading at all.
         </li>
         <li>No third-party analytics.</li>
-        <li>No cross-site tracking or fingerprinting.</li>
+        <li>
+          No tracking or fingerprinting of our own, on this site or across
+          others. Google&rsquo;s advertising cookies may be used to recognise a
+          browser across sites, which is why they need your consent in the UK
+          and the EEA and why Premium does not load them at all.
+        </li>
       </ul>
 
       <h2>Local storage</h2>

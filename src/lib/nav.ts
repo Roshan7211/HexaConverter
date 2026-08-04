@@ -124,6 +124,7 @@ export const FOOTER_SECTIONS: readonly {
       { label: 'Terms of service', href: '/legal/terms' },
       { label: 'Refund policy', href: '/legal/refunds' },
       { label: 'Cookie policy', href: '/legal/cookies' },
+      { label: 'Open-source attributions', href: '/legal/attributions' },
     ],
   },
 ];

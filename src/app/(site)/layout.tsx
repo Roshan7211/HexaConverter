@@ -34,7 +34,21 @@ export default async function SiteLayout({
   const tier = await currentTier();
 
   const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
-  const showAds = Boolean(adsenseClient) && limitsFor(tier).showsAds;
+
+  // The script loads only once a unit actually exists to fill. Loading it with
+  // no units configured buys nothing — there is no ad to serve — while still
+  // letting Google set cookies in a UK/EEA visitor's browser, which PECR does
+  // not allow before consent. Gating on the slots means advertising cannot
+  // start until the slot ids are filled in, which is the same moment the
+  // consent platform has to be in place anyway.
+  const adsConfigured =
+    Boolean(adsenseClient) &&
+    Boolean(
+      process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR ||
+      process.env.NEXT_PUBLIC_ADSENSE_SLOT_INLINE,
+    );
+
+  const showAds = adsConfigured && limitsFor(tier).showsAds;
 
   return (
     <div className="flex min-h-dvh flex-col">

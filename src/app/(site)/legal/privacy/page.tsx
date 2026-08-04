@@ -13,7 +13,7 @@ export const metadata: Metadata = buildMetadata({
   path: '/legal/privacy',
 });
 
-const LAST_UPDATED = '2026-08-03';
+const LAST_UPDATED = '2026-08-04';
 
 export default function PrivacyPage() {
   return (
@@ -149,8 +149,10 @@ export default function PrivacyPage() {
         For each conversion we record the source and target format, file sizes,
         duration, status and a salted SHA-256 hash of the requesting IP address.
         The hash lets us enforce rate limits and investigate abuse without
-        retaining an identifier that points back to you. We do not collect
-        advertising identifiers, device identifiers or precise location.
+        retaining an identifier that points back to you. We collect no
+        advertising identifiers, device identifiers or precise location
+        ourselves; where advertising is shown, Google&rsquo;s own cookies are
+        set in your browser and are described above.
       </p>
 
       <h3>Messages you send us</h3>
@@ -161,13 +163,21 @@ export default function PrivacyPage() {
 
       <h3>Cookies</h3>
       <p>
-        We set only strictly necessary cookies. One is an opaque random
-        identifier that lets your browser download the file it just converted;
-        it names no person and is linked to nothing else. The other is set only
-        if you sign in, keeps you signed in, and cannot be read by JavaScript.
-        There are no advertising or analytics cookies. The{' '}
-        <Link href="/legal/cookies">cookie policy</Link> lists every one of them
-        by name, purpose and lifetime.
+        We set two cookies of our own and both are strictly necessary. One is an
+        opaque random identifier that lets your browser download the file it
+        just converted; it names no person and is linked to nothing else. The
+        other is set only if you sign in, keeps you signed in, and cannot be
+        read by JavaScript. We set no advertising or analytics cookies
+        ourselves, and we run no third-party analytics at all.
+      </p>
+      <p>
+        Where advertising is shown, Google sets its own cookies, which we
+        neither control nor read. In the UK and the EEA those cookies require
+        your consent, and we ask for it before any advertising is loaded; you
+        can withdraw it at any time. Premium loads no advertising, so the
+        question does not arise. The{' '}
+        <Link href="/legal/cookies">cookie policy</Link> lists every cookie by
+        name, purpose and lifetime.
       </p>
 
       <h2>Why we are allowed to process it</h2>
@@ -177,8 +187,10 @@ export default function PrivacyPage() {
         supply a subscription you have paid for; legitimate interests for abuse
         prevention, security logging and service reliability; and legal
         obligation where retention is required by law, including the records tax
-        law requires of a sale. We do not rely on consent-based tracking,
-        because we do not track.
+        law requires of a sale. We rely on consent for one thing only:
+        advertising cookies set by Google, where the law where you are requires
+        it. Nothing else we do depends on consent, because nothing else we do
+        tracks you.
       </p>
 
       <h2>Retention and deletion</h2>
@@ -200,8 +212,8 @@ export default function PrivacyPage() {
             <td>
               {PLANS.ANONYMOUS.retentionHours} hour without an account,{' '}
               {PLANS.FREE.retentionHours} hours with a free one,{' '}
-              {PLANS.PREMIUM.retentionHours} on Premium &mdash; or until you
-              delete it
+              {PLANS.PREMIUM.retentionHours} hours on Premium &mdash; or until
+              you delete it
             </td>
           </tr>
           <tr>
@@ -248,18 +260,27 @@ export default function PrivacyPage() {
         attached to your account &mdash; they expire on the schedule above.
       </p>
       <p>
-        If you would rather not wait, the archive and PDF tools include a
-        &ldquo;delete my files&rdquo; control that removes everything stored for
-        your browser immediately. Clearing your cookies has the same practical
-        effect: the identifier is gone, and what remains is a row of formats and
-        timings that points to nobody.
+        If you would rather not wait, the archive manager has a{' '}
+        <strong>Delete temporary files</strong> control that immediately removes
+        every file stored for your browser, whichever tool produced it. Clearing
+        your cookies has the same practical effect: the identifier is gone, and
+        what remains is a row of formats and timings that points to nobody.
       </p>
 
       <h2>Who else can see your data</h2>
       <p>
-        We do not sell your data and we do not share it for advertising. Your
-        data is handled by a small number of service providers acting on our
-        instructions under a data processing agreement:
+        We do not sell your data, and we never give anyone your files or the
+        contents of a conversion. Where advertising is shown, Google receives
+        the ordinary information any advertising request carries &mdash; your IP
+        address, the page you are on, and whatever its own cookies hold &mdash;
+        and may use it to choose the ad. Under some laws, including
+        California&rsquo;s, that counts as &ldquo;sharing&rdquo; for
+        advertising, so we say so plainly rather than rely on a narrower
+        reading. Premium loads no advertising and nothing is shared.
+      </p>
+      <p>
+        Your data is otherwise handled by a small number of service providers
+        acting on our instructions under a data processing agreement:
       </p>
       <table>
         <caption className="sr-only">Service providers</caption>
@@ -279,7 +300,7 @@ export default function PrivacyPage() {
             <td>Stores uploaded and converted files until deletion</td>
           </tr>
           <tr>
-            <td>Managed database</td>
+            <td>Database</td>
             <td>Stores conversion metadata, never file contents</td>
           </tr>
           <tr>
@@ -299,6 +320,23 @@ export default function PrivacyPage() {
               Merchant of Record. Takes the payment, holds the card or PayPal
               details, issues the invoice and handles refunds. Only involved if
               you buy Premium
+            </td>
+          </tr>
+          <tr>
+            <td>Advertising &mdash; Google AdSense</td>
+            <td>
+              Selects and serves the ads on the free plans, and sets its own
+              cookies to do it. Receives your IP address and the page you are
+              on, never your files or what you converted. Not loaded at all on
+              Premium, or before consent where consent is required
+            </td>
+          </tr>
+          <tr>
+            <td>Backups</td>
+            <td>
+              Holds copies of the database in object storage, so the service can
+              be restored after a failure. Includes account email addresses;
+              retained no longer than the data it copies
             </td>
           </tr>
         </tbody>
@@ -328,9 +366,16 @@ export default function PrivacyPage() {
         <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>. We will not
         charge you or degrade the service for exercising a right. If you are in
         the EEA or UK you also have the right to lodge a complaint with your
-        supervisory authority. If you are a California resident, we do not sell
-        or share personal information as those terms are defined by the CCPA, so
-        there is nothing to opt out of.
+        supervisory authority.
+      </p>
+      <p>
+        If you are a California resident: we do not sell personal information
+        for money, and we never disclose your files or conversions to anyone.
+        Serving advertising may amount to &ldquo;sharing&rdquo; for
+        cross-context behavioural advertising as the CCPA defines it. You can
+        stop it entirely and at once, without contacting us, in either of two
+        ways &mdash; decline advertising cookies where you are asked, or use
+        Premium, which loads no advertising at all.
       </p>
 
       <h2>Security</h2>

@@ -11,7 +11,7 @@ export const metadata: Metadata = buildMetadata({
   path: '/legal/terms',
 });
 
-const LAST_UPDATED = '2026-08-03';
+const LAST_UPDATED = '2026-08-04';
 
 export default function TermsPage() {
   return (
@@ -65,9 +65,11 @@ export default function TermsPage() {
 
       <h2>5. Accounts</h2>
       <p>
-        Accounts are optional. Everyone who opens the site gets the same service
-        on the same terms, whether signed in or not, and no conversion requires
-        registering.
+        Accounts are optional and free, and no conversion route requires one.
+        Signing in raises the limits set out on the{' '}
+        <Link href="/pricing">pricing page</Link> and adds conversion history
+        and text recognition; without one, every format is still available and
+        the same terms apply to your use of it.
       </p>
       <p>
         If you do create one, you are responsible for keeping your sign-in
@@ -83,8 +85,14 @@ export default function TermsPage() {
         The service can be used free of charge, with or without an account. A
         paid plan, Premium, raises the limits described on the{' '}
         <Link href="/pricing">pricing page</Link>. Paying never changes the
-        output: there is no watermark, no degraded quality and no format held
-        back on the free plans.
+        output: there is no watermark, no degraded quality and no conversion
+        format held back on the free plans. Text recognition needs a free
+        account, because it costs far more processing than a conversion does.
+      </p>
+      <p>
+        The free plans are supported by advertising. Premium removes it. We do
+        not give advertisers your files, and no ad is placed inside the
+        converter or over any control you need to use.
       </p>
       <p>
         Premium is billed once a year and renews automatically until you cancel.
