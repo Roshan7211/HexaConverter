@@ -293,11 +293,10 @@ export default function PrivacyPage() {
         <tbody>
           <tr>
             <td>Application hosting</td>
-            <td>Runs the service and performs the conversions</td>
-          </tr>
-          <tr>
-            <td>Object storage</td>
-            <td>Stores uploaded and converted files until deletion</td>
+            <td>
+              Runs the service, performs the conversions, and holds your files
+              on its own storage until they are deleted
+            </td>
           </tr>
           <tr>
             <td>Database</td>
@@ -382,15 +381,16 @@ export default function PrivacyPage() {
       <p>
         Transfers use HTTPS with HSTS enforced, in the app and on the web.
         Uploads are identified by their magic bytes, never executed, and never
-        served back with an executable content type. Files at rest are encrypted
-        by the object store. Download links are signed with an HMAC bound to a
-        single conversion and expire within minutes, so a link cannot be guessed
-        or replayed indefinitely. Conversions run in isolated temporary
-        directories that are removed after each job. We hold no passwords to
-        protect: authentication is delegated to Google Firebase, and sessions on
-        this site use a cookie that JavaScript cannot read and that we can
-        revoke server-side. See the <Link href="/faq">FAQ</Link> for more
-        detail.
+        served back with an executable content type. Your files are held on a
+        private volume on the server that performs the conversion, reachable
+        only by the service itself and never listed or served directly. Download
+        links are signed with an HMAC bound to a single conversion and expire
+        within minutes, so a link cannot be guessed or replayed indefinitely.
+        Conversions run in isolated temporary directories that are removed after
+        each job. We hold no passwords to protect: authentication is delegated
+        to Google Firebase, and sessions on this site use a cookie that
+        JavaScript cannot read and that we can revoke server-side. See the{' '}
+        <Link href="/faq">FAQ</Link> for more detail.
       </p>
       <p>
         No service can promise perfect security. If we discover a breach
