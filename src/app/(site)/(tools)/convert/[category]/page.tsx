@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { AdSlot } from '@/components/ads/ad-slot';
 import { Converter } from '@/components/convert/converter';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -205,6 +206,18 @@ export default async function CategoryConverterPage({ params }: PageProps) {
               <li>Download links are signed and expire in minutes.</li>
             </ul>
           </div>
+
+          {/* Last in the sidebar, so nothing sits below it to be pushed down.
+              On a phone the grid is one column and this falls beneath the whole
+              converter — the same slot works for both without a second rule. */}
+          {/* 300x250 stacked on a phone, 300x600 in the desktop rail. The
+              reserved height is the creative height at each breakpoint. */}
+          <AdSlot
+            slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR}
+            label="Advertisement"
+            className="h-[250px] lg:h-[600px]"
+            sizeClassName="h-[250px] w-[250px] shrink-0 min-[360px]:w-[300px] lg:h-[600px] lg:w-[300px]"
+          />
         </aside>
       </div>
 

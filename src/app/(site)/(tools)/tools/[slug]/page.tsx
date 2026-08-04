@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 
 import { Converter } from '@/components/convert/converter';
+import { AdSlot } from '@/components/ads/ad-slot';
 import { FaqSection } from '@/components/marketing/faq-section';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -177,6 +178,26 @@ export default async function ToolPage({ params }: PageProps) {
             initialTarget={to.id}
             category={from.category}
             hint={`Upload a ${from.label} file to convert it to ${to.label}.`}
+          />
+
+          {/* Below the converter, never inside it. Someone reaching this has
+              finished the job they came for; the explanatory content beneath is
+              what they scroll to next. Constrained to the same `max-w-3xl` as
+              the converter so a wide creative cannot break the column. */}
+          {/* 300x250 up to the large breakpoint, then a 728x90 leaderboard.
+              The switch waits for `lg` rather than `md` because the column is
+              768px wide and a 728px creative leaves four pixels a side — enough
+              for a scrollbar or a rounding error to overflow it. */}
+          <AdSlot
+            slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_INLINE}
+            label="Advertisement"
+            className="mt-10 h-[250px] lg:h-[90px]"
+            // 250x250 on the narrowest phones: a 320px screen leaves 288px
+            // inside the column, and a 300px creative there is one Google will
+            // not let us crop. `shrink-0` keeps the declared width declared —
+            // as a flex child it was otherwise being squeezed to 288 while
+            // AdSense still served 300.
+            sizeClassName="h-[250px] w-[250px] shrink-0 min-[360px]:w-[300px] lg:h-[90px] lg:w-[728px]"
           />
         </div>
       </div>

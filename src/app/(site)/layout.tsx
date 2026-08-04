@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { AdSenseScript } from '@/components/ads/adsense-script';
+import { AdsProvider } from '@/components/ads/ads-context';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { isAdminConfigured } from '@/lib/firebase/admin';
@@ -48,7 +49,7 @@ export default async function SiteLayout({
         accountsEnabled={isAdminConfigured()}
       />
       <main id="main-content" className="flex-1">
-        {children}
+        <AdsProvider showAds={showAds}>{children}</AdsProvider>
       </main>
       <SiteFooter />
     </div>
