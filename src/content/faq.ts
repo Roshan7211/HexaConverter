@@ -7,7 +7,7 @@ import { formatBytes } from '@/utils';
 export const GENERAL_FAQ: readonly FaqEntry[] = [
   {
     question: 'Do I need an account to convert a file?',
-    answer: `No. Without one you get ${PLANS.ANONYMOUS.jobsPerPeriod} conversions a day at up to ${formatBytes(PLANS.ANONYMOUS.maxFileBytes, 0)} each. A free account raises that to ${PLANS.FREE.jobsPerPeriod} a month at ${formatBytes(PLANS.FREE.maxFileBytes, 0)}, keeps your history in one place and unlocks text recognition. Premium removes the limit entirely.`,
+    answer: `No. As a guest you get ${PLANS.ANONYMOUS.jobsPerPeriod} conversions a day at up to ${formatBytes(PLANS.ANONYMOUS.maxFileBytes, 0)} each. A free member account raises that to ${PLANS.FREE.jobsPerPeriod} a day at ${formatBytes(PLANS.FREE.maxFileBytes, 0)}, keeps your history in one place and unlocks text recognition. Premium removes the limit entirely.`,
   },
   {
     question: 'How long are my files stored?',
@@ -49,7 +49,7 @@ export const GENERAL_FAQ: readonly FaqEntry[] = [
   {
     question: 'Can I cancel a conversion that is taking too long?',
     answer:
-      'Yes. Use the cancel button on any queued or running file. The encoder is stopped, the partial output is discarded, and the conversion does not count towards your monthly allowance.',
+      'Yes. Use the cancel button on any queued or running file. The encoder is stopped, the partial output is discarded, and the conversion does not count towards your allowance.',
   },
 ];
 

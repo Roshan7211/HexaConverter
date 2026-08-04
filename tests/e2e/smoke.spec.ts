@@ -132,7 +132,7 @@ test.describe('pricing', () => {
   }) => {
     await page.goto('/pricing');
 
-    for (const plan of ['No account', 'Free account', 'Premium']) {
+    for (const plan of ['Guest', 'Member', 'Premium']) {
       await expect(
         page.getByRole('heading', { level: 2, name: plan, exact: true }),
       ).toBeVisible();

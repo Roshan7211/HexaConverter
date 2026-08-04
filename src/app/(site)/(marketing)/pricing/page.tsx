@@ -32,7 +32,7 @@ const price = (PREMIUM_PRICE_PENCE / 100).toFixed(2);
 const TIERS = [
   {
     id: 'ANONYMOUS' as const,
-    name: 'No account',
+    name: 'Guest',
     price: 'Free',
     note: 'Nothing to sign up for',
     cta: { label: 'Start converting', href: '/convert/image' },
@@ -40,7 +40,7 @@ const TIERS = [
   },
   {
     id: 'FREE' as const,
-    name: 'Free account',
+    name: 'Member',
     price: 'Free',
     note: 'Sign in with email or Google',
     cta: { label: 'Create an account', href: '/sign-up' },
@@ -200,7 +200,7 @@ export default async function PricingPage() {
         Conversion is real work on real hardware, so an unbounded allowance is
         not something anyone can honestly promise &mdash; but the ceiling sits
         far above what normal use reaches. Allowances are counted over a rolling
-        window &mdash; 24 hours without an account, 30 days with one &mdash; so
+        window &mdash; 24 hours on the free plans, 30 days on Premium &mdash; so
         they free up gradually rather than resetting on a fixed date.
       </p>
 

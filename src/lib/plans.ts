@@ -25,11 +25,16 @@ export interface Limits {
   /**
    * Length of that window, in days.
    *
-   * Per-tier rather than global because the two allowances answer different
-   * questions. Someone with no account is passing through and needs enough to
-   * finish what they came for today; someone with an account is being given a
-   * monthly budget. A daily window also recovers on its own, so hitting the
-   * anonymous limit costs a visitor a day rather than the rest of the month.
+   * Per-tier because the free rungs and the paid one answer different
+   * questions. Guests and members are passing through and need enough to
+   * finish what they came for today, so both reset daily and a bad afternoon
+   * costs them until tomorrow rather than the rest of the month. Premium is a
+   * subscription, and a monthly fair-use ceiling is what a subscription means.
+   *
+   * Keep the two free rungs on the same window. They are compared directly, on
+   * the pricing page and in every upsell, and comparing a daily number with a
+   * monthly one is how the member allowance ended up smaller than the guest
+   * one while reading larger.
    */
   periodDays: number;
   /** Files accepted in one batch. */
@@ -60,15 +65,20 @@ export const PLANS: Record<PlanTier, Limits> = {
   },
 
   /**
-   * Free, with an account. Ten times the allowance, five times the file size,
+   * Free, with an account. Twice the daily allowance, five times the file size,
    * conversion history that follows you between devices, and text recognition —
    * enough that registering is obviously worth doing. Advertising still shows;
    * removing it is what Premium is for.
+   *
+   * Counted per day rather than per month so it can be compared with the guest
+   * allowance directly. A monthly budget read as the larger number while being
+   * the smaller one — 50 a month against 5 a day is 50 against 150 — which made
+   * registering a downgrade for anyone converting regularly.
    */
   FREE: {
     maxFileBytes: 500 * MB,
-    jobsPerPeriod: 50,
-    periodDays: 30,
+    jobsPerPeriod: 10,
+    periodDays: 1,
     maxBatchFiles: 15,
     retentionHours: 24,
     concurrentJobs: 2,
@@ -113,9 +123,3 @@ export function limitsFor(tier: PlanTier): Limits {
  * asking. Marketing copy and the client bundle read this.
  */
 export const LIMITS: Limits = PLANS.ANONYMOUS;
-
-/**
- * Default window, kept for copy that talks about the monthly allowance. The
- * enforced window is `limits.periodDays`, which differs by tier.
- */
-export const USAGE_PERIOD_DAYS = 30;

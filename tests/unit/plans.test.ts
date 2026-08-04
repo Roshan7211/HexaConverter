@@ -13,7 +13,11 @@ import { PLAN_TIERS, type PlanTier } from '@/types/plans';
  * edited in lockstep with the thing it guards catches nothing.
  */
 
-const ordered: PlanTier[] = ['ANONYMOUS', 'FREE', 'PREMIUM'];
+/** Each rung paired with the one below it, lowest first. */
+const steps: ReadonlyArray<readonly [lower: PlanTier, higher: PlanTier]> = [
+  ['ANONYMOUS', 'FREE'],
+  ['FREE', 'PREMIUM'],
+];
 
 describe('plan matrix', () => {
   it('covers every declared tier', () => {
@@ -39,43 +43,37 @@ describe('plan matrix', () => {
     ] as const;
 
     for (const key of rising) {
-      for (let i = 1; i < ordered.length; i += 1) {
-        const lower = PLANS[ordered[i - 1]][key];
-        const higher = PLANS[ordered[i]][key];
+      for (const [lower, higher] of steps) {
         expect(
-          higher,
-          `${key} must not fall from ${ordered[i - 1]} to ${ordered[i]}`,
-        ).toBeGreaterThan(lower);
+          PLANS[higher][key],
+          `${key} must not fall from ${lower} to ${higher}`,
+        ).toBeGreaterThan(PLANS[lower][key]);
       }
     }
   });
 
-  it('gives a free account a bigger single-sitting allowance than none', () => {
-    // What a visitor actually runs into. Anonymous use stops after 5 in a day;
-    // an account carries a 50-conversion budget into that same sitting.
-    expect(PLANS.FREE.jobsPerPeriod).toBeGreaterThan(
-      PLANS.ANONYMOUS.jobsPerPeriod,
-    );
-    expect(PLANS.PREMIUM.jobsPerPeriod).toBeGreaterThan(
-      PLANS.FREE.jobsPerPeriod,
-    );
-  });
-
-  it('documents that the ladder inverts on sustained monthly volume', () => {
-    // Deliberate, and the one place the file's "an account is always better"
-    // rule does not hold. Anonymous resets daily, so 5 a day is ~150 a month
-    // against a free account's 50: someone converting a couple of files every
-    // day is better off never registering, on count alone. Everything else —
-    // file size, batch, retention, concurrency, history, OCR — still favours
-    // the account, which is what the free tier is actually selling.
-    //
-    // Asserted rather than left implicit so that if the allowances are ever
-    // rebalanced, this test fails and the choice gets made again on purpose.
+  it('holds the ladder on sustained volume, not just per window', () => {
+    // The allowances are quoted over different windows, so the headline numbers
+    // cannot be compared directly. Rating them per day is the only comparison
+    // that reflects what someone actually gets, and it is the one that used to
+    // fail: 50 a month against 5 a day read as the bigger allowance while being
+    // a third of it, making registration a downgrade for regular use.
     const perDay = (tier: PlanTier) =>
       PLANS[tier].jobsPerPeriod / PLANS[tier].periodDays;
 
-    expect(perDay('ANONYMOUS')).toBeGreaterThan(perDay('FREE'));
-    expect(perDay('PREMIUM')).toBeGreaterThan(perDay('ANONYMOUS'));
+    for (const [lower, higher] of steps) {
+      expect(
+        perDay(higher),
+        `${higher} must beat ${lower} per day, not just per window`,
+      ).toBeGreaterThan(perDay(lower));
+    }
+  });
+
+  it('keeps the two free rungs on the same window', () => {
+    // Guest and member sit side by side on the pricing table and in every
+    // upsell sentence. Quoting one per day and the other per month is what
+    // hid the inversion above in the first place.
+    expect(PLANS.FREE.periodDays).toBe(PLANS.ANONYMOUS.periodDays);
   });
 
   it('reserves the priority queue for the paid tier', () => {

@@ -5,6 +5,7 @@ import { LegalPage } from '@/components/layout/legal-page';
 import { SUPPORT_EMAIL } from '@/lib/contact';
 import { PLANS, PREMIUM_PRICE_PENCE } from '@/lib/plans';
 import { buildMetadata, SITE } from '@/lib/seo';
+import { formatBytes } from '@/utils';
 
 export const metadata: Metadata = buildMetadata({
   title: 'Refund policy',
@@ -44,11 +45,11 @@ export default function RefundsPage() {
       <h2>Try it before you pay</h2>
       <p>
         Every conversion {SITE.name} performs is available without paying and
-        without an account. A free account raises the limits further &mdash;{' '}
-        {PLANS.FREE.jobsPerPeriod} conversions a month at up to 500 MB &mdash;
-        and costs nothing. Premium raises them again; it does not unlock
-        quality, remove a watermark or lift a restriction on what the encoders
-        will do.
+        without an account. A free member account raises the limits further
+        &mdash; {PLANS.FREE.jobsPerPeriod} conversions a day at up to{' '}
+        {formatBytes(PLANS.FREE.maxFileBytes, 0)} &mdash; and costs nothing.
+        Premium raises them again; it does not unlock quality, remove a
+        watermark or lift a restriction on what the encoders will do.
       </p>
       <p>
         We would rather you established that the service handles your files

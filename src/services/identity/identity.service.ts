@@ -166,9 +166,14 @@ export async function checkQuota(requester: Requester): Promise<QuotaVerdict> {
     // Says what to do about it, and says it differently at each rung. A
     // premium user who somehow reaches the fair-use ceiling is not being
     // upsold anything — the honest answer there is when it resets.
+    // The window word is derived, not written, so the sentence cannot drift
+    // out of step with the table the way a hardcoded "a month" did when the
+    // member allowance became a daily one.
+    const freeWindow = PLANS.FREE.periodDays === 1 ? 'a day' : 'a month';
+
     const nextStep =
       requester.tier === 'ANONYMOUS'
-        ? ` Creating a free account raises this to ${PLANS.FREE.jobsPerPeriod} a month.`
+        ? ` Creating a free account raises this to ${PLANS.FREE.jobsPerPeriod} ${freeWindow}.`
         : requester.tier === 'FREE'
           ? ' Premium removes the limit.'
           : '';
