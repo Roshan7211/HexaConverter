@@ -31,8 +31,8 @@ function privateKey(): string | undefined {
 export function isAdminConfigured(): boolean {
   return Boolean(
     process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
-      process.env.FIREBASE_CLIENT_EMAIL &&
-      privateKey(),
+    process.env.FIREBASE_CLIENT_EMAIL &&
+    privateKey(),
   );
 }
 

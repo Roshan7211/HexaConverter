@@ -38,7 +38,9 @@ export function DeleteAccount({ email }: { email: string }) {
 
       // The account is already gone server-side; this just stops the browser
       // SDK holding a token for a user that no longer exists.
-      await firebaseAuth()?.signOut().catch(() => undefined);
+      await firebaseAuth()
+        ?.signOut()
+        .catch(() => undefined);
 
       toast.success('Your account has been closed.');
       router.push('/');

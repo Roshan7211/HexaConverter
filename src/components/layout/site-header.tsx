@@ -173,7 +173,12 @@ export function SiteHeader({ user, accountsEnabled }: SiteHeaderProps) {
             user ? (
               <UserMenu email={user.email} />
             ) : (
-              <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="hidden sm:inline-flex"
+              >
                 <Link href="/sign-in">Sign in</Link>
               </Button>
             )

@@ -2,6 +2,19 @@ import { defineConfig, devices } from '@playwright/test';
 
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 
+/**
+ * Drives an already-installed browser instead of Playwright's bundled one.
+ *
+ * Playwright refuses to install its browsers on macOS versions it no longer
+ * supports — `Playwright does not support chromium on mac13` — which leaves a
+ * developer on such a machine unable to run this suite at all. Setting
+ * `PLAYWRIGHT_CHANNEL=chrome` uses the system Chrome instead.
+ *
+ * Unset by default, so CI keeps using the pinned bundled build and stays
+ * reproducible. This is an escape hatch for local machines, not a default.
+ */
+const channel = process.env.PLAYWRIGHT_CHANNEL;
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -16,8 +29,14 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'], ...(channel ? { channel } : {}) },
+    },
+    {
+      name: 'mobile',
+      use: { ...devices['Pixel 7'], ...(channel ? { channel } : {}) },
+    },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined

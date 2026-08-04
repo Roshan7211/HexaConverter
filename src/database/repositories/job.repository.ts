@@ -69,10 +69,7 @@ export function ownerFilter(owner: OwnerScope): Prisma.ConversionJobWhereInput {
   }
 
   return {
-    OR: [
-      { userId: owner.userId },
-      { guestId: owner.guestId, userId: null },
-    ],
+    OR: [{ userId: owner.userId }, { guestId: owner.guestId, userId: null }],
   };
 }
 

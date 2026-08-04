@@ -46,8 +46,9 @@ export default function RefundsPage() {
         Every conversion {SITE.name} performs is available without paying and
         without an account. A free account raises the limits further &mdash;{' '}
         {PLANS.FREE.jobsPerPeriod} conversions a month at up to 500 MB &mdash;
-        and costs nothing. Premium raises them again; it does not unlock quality,
-        remove a watermark or lift a restriction on what the encoders will do.
+        and costs nothing. Premium raises them again; it does not unlock
+        quality, remove a watermark or lift a restriction on what the encoders
+        will do.
       </p>
       <p>
         We would rather you established that the service handles your files
@@ -102,11 +103,7 @@ export default function RefundsPage() {
         <Link href="/contact">contact form</Link> from the address you bought
         with, and say you would like a refund. You can also contact Paddle
         directly at{' '}
-        <a
-          href="https://paddle.net"
-          rel="noopener noreferrer"
-          target="_blank"
-        >
+        <a href="https://paddle.net" rel="noopener noreferrer" target="_blank">
           paddle.net
         </a>
         , which is their buyer support portal. We aim to answer within two
@@ -115,12 +112,12 @@ export default function RefundsPage() {
 
       <h2>Your legal rights</h2>
       <p>
-        Nothing in this policy affects the rights you have under consumer law. If
-        you are in the UK or the EU you normally have a statutory 14-day right to
-        cancel a distance contract, which this policy matches deliberately rather
-        than trying to narrow. Where a service is supplied immediately at your
-        request, that statutory right can be reduced &mdash; our 14 days apply
-        regardless.
+        Nothing in this policy affects the rights you have under consumer law.
+        If you are in the UK or the EU you normally have a statutory 14-day
+        right to cancel a distance contract, which this policy matches
+        deliberately rather than trying to narrow. Where a service is supplied
+        immediately at your request, that statutory right can be reduced &mdash;
+        our 14 days apply regardless.
       </p>
       <p>
         If something we sold you does not work as described, you are entitled to
@@ -129,9 +126,9 @@ export default function RefundsPage() {
 
       <h2>Failed payments</h2>
       <p>
-        If an annual renewal fails, Premium lapses and the account returns to the
-        free plan. Nothing is charged, nothing is deleted, and you can buy again
-        whenever you like.
+        If an annual renewal fails, Premium lapses and the account returns to
+        the free plan. Nothing is charged, nothing is deleted, and you can buy
+        again whenever you like.
       </p>
     </LegalPage>
   );

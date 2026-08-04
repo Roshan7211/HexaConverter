@@ -30,25 +30,28 @@ import { withErrorHandling } from '@/middleware/with-error-handling';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export const DELETE = withErrorHandling('DELETE /api/account', async (request) => {
-  if (!isAdminConfigured()) {
-    return errors.unavailable('Accounts are not enabled on this deployment.');
-  }
+export const DELETE = withErrorHandling(
+  'DELETE /api/account',
+  async (request) => {
+    if (!isAdminConfigured()) {
+      return errors.unavailable('Accounts are not enabled on this deployment.');
+    }
 
-  const limited = enforceRateLimit('auth', request);
-  if (limited) return limited;
+    const limited = enforceRateLimit('auth', request);
+    if (limited) return limited;
 
-  // Read from the verified session, never from the request. A uid in the body
-  // would let any caller delete any account.
-  const user = await currentUser();
-  if (!user) return errors.unauthorized('Sign in to close your account.');
+    // Read from the verified session, never from the request. A uid in the body
+    // would let any caller delete any account.
+    const user = await currentUser();
+    if (!user) return errors.unauthorized('Sign in to close your account.');
 
-  await adminAuth().deleteUser(user.firebaseUid);
-  await deleteByFirebaseUid(user.firebaseUid);
+    await adminAuth().deleteUser(user.firebaseUid);
+    await deleteByFirebaseUid(user.firebaseUid);
 
-  (await cookies()).set(SESSION_COOKIE, '', sessionCookieOptions(0));
+    (await cookies()).set(SESSION_COOKIE, '', sessionCookieOptions(0));
 
-  logger.info('Account deleted');
+    logger.info('Account deleted');
 
-  return ok({ deleted: true });
-});
+    return ok({ deleted: true });
+  },
+);

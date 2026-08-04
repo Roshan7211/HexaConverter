@@ -12,7 +12,9 @@
  */
 
 export const PADDLE_ENV =
-  process.env.NEXT_PUBLIC_PADDLE_ENV === 'production' ? 'production' : 'sandbox';
+  process.env.NEXT_PUBLIC_PADDLE_ENV === 'production'
+    ? 'production'
+    : 'sandbox';
 
 export const PADDLE_CLIENT_TOKEN =
   process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN ?? '';

@@ -6,12 +6,7 @@ import { JobStatus } from '@prisma/client';
 
 import { serverEnv } from '@/lib/env';
 import { currentUser } from '@/lib/firebase/session';
-import {
-  limitsFor,
-  PLANS,
-  type Limits,
-  type PlanTier,
-} from '@/lib/plans';
+import { limitsFor, PLANS, type Limits, type PlanTier } from '@/lib/plans';
 import * as jobs from '@/database/repositories/job.repository';
 import {
   findByFirebaseUid,

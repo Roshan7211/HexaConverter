@@ -44,7 +44,9 @@ function paddle(): Paddle | null {
 
   return new Paddle(key, {
     environment:
-      PADDLE_ENV === 'production' ? Environment.production : Environment.sandbox,
+      PADDLE_ENV === 'production'
+        ? Environment.production
+        : Environment.sandbox,
   });
 }
 
@@ -75,7 +77,8 @@ export async function POST(request: Request) {
   }
 
   const signature = request.headers.get('paddle-signature');
-  if (!signature) return NextResponse.json({ error: 'unsigned' }, { status: 400 });
+  if (!signature)
+    return NextResponse.json({ error: 'unsigned' }, { status: 400 });
 
   // Must be the raw text. Parsing to JSON and re-serialising changes the bytes
   // and the signature will never match.

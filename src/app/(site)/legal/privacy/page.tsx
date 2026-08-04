@@ -121,11 +121,11 @@ export default function PrivacyPage() {
         Nothing else.
       </p>
       <p>
-        <strong>We never see your password.</strong> Sign-in is handled by Google
-        Firebase Authentication, which holds and hashes the password itself. Our
-        database contains no credential of any kind, so it cannot be breached out
-        of it. If you sign in with Google, we receive only the email address and
-        basic profile that Google returns.
+        <strong>We never see your password.</strong> Sign-in is handled by
+        Google Firebase Authentication, which holds and hashes the password
+        itself. Our database contains no credential of any kind, so it cannot be
+        breached out of it. If you sign in with Google, we receive only the
+        email address and basic profile that Google returns.
       </p>
       <h3>Payment data &mdash; only if you buy Premium</h3>
       <p>
@@ -160,10 +160,10 @@ export default function PrivacyPage() {
       <h3>Cookies</h3>
       <p>
         We set only strictly necessary cookies. One is an opaque random
-        identifier that lets your browser download the file it just converted; it
-        names no person and is linked to nothing else. The other is set only if
-        you sign in, keeps you signed in, and cannot be read by JavaScript. There
-        are no advertising or analytics cookies. The{' '}
+        identifier that lets your browser download the file it just converted;
+        it names no person and is linked to nothing else. The other is set only
+        if you sign in, keeps you signed in, and cannot be read by JavaScript.
+        There are no advertising or analytics cookies. The{' '}
         <Link href="/legal/cookies">cookie policy</Link> lists every one of them
         by name, purpose and lifetime.
       </p>
@@ -175,8 +175,8 @@ export default function PrivacyPage() {
         supply a subscription you have paid for; legitimate interests for abuse
         prevention, security logging and service reliability; and legal
         obligation where retention is required by law, including the records tax
-        law requires of a sale. We do not rely on consent-based tracking, because
-        we do not track.
+        law requires of a sale. We do not rely on consent-based tracking,
+        because we do not track.
       </p>
 
       <h2>Retention and deletion</h2>
@@ -233,17 +233,16 @@ export default function PrivacyPage() {
 
       <h2>Deleting your data</h2>
       <p>
-        If you never created an account, there is nothing to delete: nothing that
-        identifies you was stored in the first place, and your files are removed
-        on the schedule above without you having to ask.
+        If you never created an account, there is nothing to delete: nothing
+        that identifies you was stored in the first place, and your files are
+        removed on the schedule above without you having to ask.
       </p>
       <p>
-        If you did create one, go to{' '}
-        <a href="/account">your account page</a> and choose{' '}
-        <strong>Close account permanently</strong>. That deletes your sign-in
-        credential at Firebase and your record here at the same time, straight
-        away and without needing to contact us. It cannot be undone. Your
-        converted files are unaffected either way, because they were never
+        If you did create one, go to <a href="/account">your account page</a>{' '}
+        and choose <strong>Close account permanently</strong>. That deletes your
+        sign-in credential at Firebase and your record here at the same time,
+        straight away and without needing to contact us. It cannot be undone.
+        Your converted files are unaffected either way, because they were never
         attached to your account &mdash; they expire on the schedule above.
       </p>
       <p>
@@ -342,8 +341,9 @@ export default function PrivacyPage() {
         or replayed indefinitely. Conversions run in isolated temporary
         directories that are removed after each job. We hold no passwords to
         protect: authentication is delegated to Google Firebase, and sessions on
-        this site use a cookie that JavaScript cannot read and that we can revoke
-        server-side. See the <Link href="/faq">FAQ</Link> for more detail.
+        this site use a cookie that JavaScript cannot read and that we can
+        revoke server-side. See the <Link href="/faq">FAQ</Link> for more
+        detail.
       </p>
       <p>
         No service can promise perfect security. If we discover a breach
@@ -363,8 +363,8 @@ export default function PrivacyPage() {
       <h2>Changes</h2>
       <p>
         If this policy changes materially we will update the date above. We have
-        no mailing list to announce it on, so this page is the notice. We keep it
-        at a stable address so that it can be linked from elsewhere.
+        no mailing list to announce it on, so this page is the notice. We keep
+        it at a stable address so that it can be linked from elsewhere.
       </p>
     </LegalPage>
   );

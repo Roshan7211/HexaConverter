@@ -210,7 +210,9 @@ export default async function PricingPage() {
             What stays the same on every plan
           </h2>
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li>No watermark, ever. Output is exactly what the encoder made.</li>
+            <li>
+              No watermark, ever. Output is exactly what the encoder made.
+            </li>
             <li>
               EXIF and GPS metadata stripped by default, on free and paid alike.
             </li>

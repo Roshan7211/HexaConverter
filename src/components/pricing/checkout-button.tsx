@@ -7,11 +7,7 @@ import { initializePaddle, type Paddle } from '@paddle/paddle-js';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import {
-  PADDLE_CLIENT_TOKEN,
-  PADDLE_ENV,
-  PADDLE_PRICE_ID,
-} from '@/lib/paddle';
+import { PADDLE_CLIENT_TOKEN, PADDLE_ENV, PADDLE_PRICE_ID } from '@/lib/paddle';
 
 /**
  * Opens the Paddle overlay checkout.

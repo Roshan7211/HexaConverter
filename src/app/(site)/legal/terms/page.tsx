@@ -73,8 +73,9 @@ export default function TermsPage() {
         If you do create one, you are responsible for keeping your sign-in
         details secure and for activity carried out through it. Provide an email
         address you control and are entitled to use. We may suspend or close an
-        account that is used to break these terms. You may close your own account
-        at any time from your account page, which deletes it immediately.
+        account that is used to break these terms. You may close your own
+        account at any time from your account page, which deletes it
+        immediately.
       </p>
 
       <h2>6. Plans, payment and renewal</h2>
