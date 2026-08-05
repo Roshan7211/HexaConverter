@@ -9,7 +9,6 @@ import {
   createUserWithEmailAndPassword,
   getRedirectResult,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signInWithRedirect,
 } from 'firebase/auth';
 import { toast } from 'sonner';
@@ -177,41 +176,36 @@ export function SignInForm({ mode }: { mode: Mode }) {
     }
   }
 
+  /**
+   * Google sign-in, by redirect rather than pop-up.
+   *
+   * The pop-up is the slicker flow and it does not work here. Traced against
+   * production: the window opens on our own auth handler, reaches Google's
+   * sign-in page correctly, and then fails during Firebase's handoff back to
+   * the opener — the visitor lands back on this page signed out, and the SDK
+   * reports only `popup-closed-by-user`. Every part we control checks out: the
+   * handler is byte-identical to Firebase's own, the domain is authorised, the
+   * OAuth redirect URI is registered, the CSP permits the frame and the script.
+   *
+   * The redirect flow does not use that handoff, and it demonstrably works —
+   * on mobile, where pop-ups were blocked, this path was already succeeding.
+   * So it becomes the only path: a whole-page navigation is a smaller price
+   * than a sign-in button that silently does nothing, and it sidesteps pop-up
+   * blockers everywhere as a bonus. `getRedirectResult` above completes it.
+   */
   async function withGoogle() {
     if (busy || !auth) return;
     setBusy(true);
 
     try {
-      const credential = await signInWithPopup(auth, new GoogleAuthProvider());
-      await establishSession(await credential.user.getIdToken());
-      router.push('/');
-      router.refresh();
+      await signInWithRedirect(auth, new GoogleAuthProvider());
+      // The browser leaves this page; `busy` stops mattering.
     } catch (error) {
       const code = (error as { code?: string })?.code ?? '';
-
-      // A pop-up is the nicer flow when it works, and on mobile it frequently
-      // does not: iOS Safari blocks windows it does not consider a direct
-      // result of the tap, and in-app browsers often have no pop-ups at all.
-      // The failure is silent from the visitor's side — they tap, nothing
-      // happens — so fall back to sending them to Google in this tab instead
-      // of reporting an error they cannot act on.
-      if (
-        code === 'auth/popup-blocked' ||
-        code === 'auth/operation-not-supported-in-this-environment'
-      ) {
-        try {
-          await signInWithRedirect(auth, new GoogleAuthProvider());
-          return; // The page navigates away; `busy` no longer matters.
-        } catch {
-          toast.error('Could not reach Google. Please try again.');
-        }
-      } else {
-        const message = code
-          ? describe(code, mode)
-          : ((error as Error).message ?? '');
-        // Empty for a closed popup — that is a decision, not a failure.
-        if (message) toast.error(message);
-      }
+      const message = code
+        ? describe(code, mode)
+        : ((error as Error).message ?? '');
+      toast.error(message || 'Could not reach Google. Please try again.');
     } finally {
       setBusy(false);
     }
