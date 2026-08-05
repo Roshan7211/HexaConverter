@@ -61,6 +61,23 @@ function useDimensions(url: string | null) {
   return dimensions;
 }
 
+/**
+ * Formats an `<img>` element can actually draw.
+ *
+ * Anything outside this is described rather than fetched: a PDF or a TIFF put
+ * in an `<img>` downloads in full and then renders a broken icon, which is the
+ * worst of both.
+ */
+const RENDERABLE_IN_IMG = new Set([
+  'png',
+  'jpg',
+  'gif',
+  'webp',
+  'svg',
+  'avif',
+  'bmp',
+]);
+
 export function ImagePreview({ item, targetFormat }: Props) {
   const [failed, setFailed] = useState(false);
 
@@ -73,9 +90,13 @@ export function ImagePreview({ item, targetFormat }: Props) {
 
   const done = item.status === 'completed' && item.downloadUrl;
 
-  // Browsers cannot render TIFF or BMP in an <img>, so a result in those
-  // formats is described rather than shown — better than a broken image icon.
-  const renderable = !['tiff', 'bmp'].includes(targetFormat);
+  // An allow-list, because the target can be any of 43 formats and only a
+  // handful of them are things an <img> can draw. The old deny-list named TIFF
+  // and BMP, which got both ends wrong: browsers do render BMP, and every
+  // non-image target — PDF above all — sailed through and was fetched in full
+  // just to fail. That cost the visitor a whole download of a file they had
+  // not asked for yet, twice, and then blamed their browser for it.
+  const renderable = RENDERABLE_IN_IMG.has(targetFormat);
 
   const savings =
     done && item.outputSize && item.size > 0
@@ -142,9 +163,11 @@ export function ImagePreview({ item, targetFormat }: Props) {
               ) : (
                 <span className="flex flex-col items-center gap-2 p-6 text-center text-xs text-muted-foreground">
                   <ImageOff className="size-6" aria-hidden="true" />
-                  {done
-                    ? `${targetFormat.toUpperCase()} files cannot be displayed by browsers — download to view.`
-                    : 'Not converted yet'}
+                  {!done
+                    ? 'Not converted yet'
+                    : failed
+                      ? 'The preview could not be loaded. The file itself is ready to download.'
+                      : `A ${targetFormat.toUpperCase()} cannot be shown in a preview like this one. Download it to view the result.`}
                 </span>
               )}
             </div>

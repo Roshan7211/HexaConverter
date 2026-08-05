@@ -25,6 +25,23 @@ const servedOverHttps = (
 // up — leaves the policy exactly as strict as it was.
 const firebaseAuthDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
 
+// Object storage, when the deployment uses it. With `STORAGE_DRIVER=s3` the
+// download route redirects to a signed URL on the storage host, and a redirect
+// is checked against the policy at its destination — so a converted image would
+// be blocked from its own preview. Local storage streams the bytes from this
+// origin and needs nothing here, which is why this stayed hidden: it only
+// appears on S3 deployments.
+const storageHost = (() => {
+  if (process.env.STORAGE_DRIVER !== 's3') return '';
+  const endpoint = process.env.S3_ENDPOINT;
+  if (!endpoint) return '';
+  try {
+    return ` ${new URL(endpoint).origin}`;
+  } catch {
+    return '';
+  }
+})();
+
 // Likewise for payments: no Paddle token configured, no Paddle in the policy.
 // `cdn.paddle.com` serves Paddle.js itself; the wildcard covers the checkout
 // overlay and the endpoints it calls, which differ between sandbox and live
@@ -61,7 +78,7 @@ const csp = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  `img-src 'self' data: blob:${ads}`,
+  `img-src 'self' data: blob:${storageHost}${ads}`,
   "media-src 'self' blob:",
   "font-src 'self' data:",
   // Paddle serves the overlay's stylesheet from their CDN as well as the
