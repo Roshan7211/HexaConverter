@@ -53,7 +53,13 @@ function describe(code: string, mode: Mode): string {
     case 'auth/too-many-requests':
       return 'Too many attempts. Wait a few minutes and try again.';
     case 'auth/popup-closed-by-user':
+      // Reported both when someone genuinely closes the window and when the
+      // flow fails and the window closes itself. Staying silent was wrong for
+      // the second case: the visitor taps, nothing happens, and there is
+      // nothing to act on or report. A short message covers both honestly.
+      return 'The Google window closed before sign-in finished. Try again, or use your email and password below.';
     case 'auth/cancelled-popup-request':
+      // Genuinely internal: a second request superseded the first.
       return '';
     case 'auth/popup-blocked':
       return 'Your browser blocked the sign-in window. Allow pop-ups for this site, or try again — we will send you to Google directly.';

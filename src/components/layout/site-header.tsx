@@ -179,7 +179,11 @@ export function SiteHeader({ user, accountsEnabled }: SiteHeaderProps) {
                 variant="ghost"
                 size="sm"
                 asChild
-                className="hidden sm:inline-flex"
+                // Shown from 360px up: the logo, this, the theme toggle and
+                // the menu button together need 311px, which fits inside the
+                // container on all but the very narrowest phones. Below that
+                // the drawer carries it instead.
+                className="hidden min-[360px]:inline-flex"
               >
                 <Link href="/sign-in">Sign in</Link>
               </Button>
@@ -270,6 +274,46 @@ export function SiteHeader({ user, accountsEnabled }: SiteHeaderProps) {
                 {link.label}
               </Link>
             ))}
+
+            {/* Accounts were unreachable on a phone. The header's "Sign in"
+                button is hidden on narrow screens to leave room for the logo
+                and the menu, and this drawer — the only other navigation a
+                phone has — never mentioned accounts at all. Between them there
+                was no way to sign in below 640px. */}
+            {accountsEnabled ? (
+              <>
+                <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Account
+                </p>
+                {user ? (
+                  <Link
+                    href="/account"
+                    className={cn(
+                      'rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent',
+                      isActive('/account') &&
+                        'bg-accent text-accent-foreground',
+                    )}
+                  >
+                    Your account
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/sign-in"
+                      className="rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                    >
+                      Sign in
+                    </Link>
+                    <Link
+                      href="/sign-up"
+                      className="rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                    >
+                      Create an account
+                    </Link>
+                  </>
+                )}
+              </>
+            ) : null}
           </nav>
         </div>
       ) : null}
