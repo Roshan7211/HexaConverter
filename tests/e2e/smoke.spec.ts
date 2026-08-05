@@ -132,11 +132,26 @@ test.describe('pricing', () => {
   }) => {
     await page.goto('/pricing');
 
-    for (const plan of ['Guest', 'Member', 'Premium']) {
+    // Premium is only rendered where a checkout exists to send people to, so
+    // what the page should show depends on configuration. CI runs without
+    // Paddle credentials and must see the two free plans and no third.
+    const paddleConfigured = Boolean(
+      process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN &&
+      process.env.NEXT_PUBLIC_PADDLE_PRICE_ID,
+    );
+
+    for (const plan of ['Guest', 'Member']) {
       await expect(
         page.getByRole('heading', { level: 2, name: plan, exact: true }),
       ).toBeVisible();
     }
+
+    const premium = page.getByRole('heading', {
+      level: 2,
+      name: 'Premium',
+      exact: true,
+    });
+    await expect(premium).toBeVisible({ visible: paddleConfigured });
 
     // The anonymous file ceiling, proving the table renders from `PLANS`
     // rather than from numbers typed into the markup.

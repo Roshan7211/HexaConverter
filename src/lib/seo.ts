@@ -123,8 +123,11 @@ export function webApplicationSchema() {
     offers: {
       '@type': 'Offer',
       price: '0',
-      priceCurrency: 'USD',
-      description: 'Free to use, with no paid tier and no account',
+      priceCurrency: 'GBP',
+      // Describes the free offer only, which is what the zero price refers to.
+      // The previous wording promised "no paid tier", which stopped being true
+      // when plans landed and would be wrong again the moment Premium returns.
+      description: 'Free to use, with no account required',
     },
   };
 }

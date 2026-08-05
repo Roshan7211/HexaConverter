@@ -31,7 +31,7 @@ const SIGNALS = [
   {
     icon: Timer,
     title: 'Deletion is scheduled, not promised',
-    body: `Source files go the moment a conversion finishes. Outputs are purged by a cron job when their retention window ends — ${PLANS.ANONYMOUS.retentionHours} hour without an account, ${PLANS.PREMIUM.retentionHours} on Premium.`,
+    body: `Source files go the moment a conversion finishes. Outputs are purged by a cron job when their retention window ends — ${PLANS.ANONYMOUS.retentionHours} hour as a guest, ${PLANS.FREE.retentionHours} hours with a free account.`,
     proof: { label: 'Read the retention table', href: '/legal/privacy' },
   },
   {

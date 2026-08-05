@@ -29,9 +29,9 @@ const DIFFERENTIATORS = [
     body: 'Output contains exactly what the encoder produced. No branding, no overlays, no injected metadata.',
   },
   {
-    stat: `${PLANS.PREMIUM.retentionHours}h`,
+    stat: `${PLANS.FREE.retentionHours}h`,
     label: 'file retention',
-    body: `Source files are deleted the moment a conversion finishes. Outputs are purged automatically — after ${PLANS.ANONYMOUS.retentionHours} hour without an account, up to ${PLANS.PREMIUM.retentionHours} hours on Premium — or sooner if you delete them yourself.`,
+    body: `Source files are deleted the moment a conversion finishes. Outputs are purged automatically — after ${PLANS.ANONYMOUS.retentionHours} hour as a guest, ${PLANS.FREE.retentionHours} hours with a free account — or sooner if you delete them yourself.`,
   },
   {
     stat: `${formatBytes(PLANS.ANONYMOUS.maxFileBytes, 0)}`,

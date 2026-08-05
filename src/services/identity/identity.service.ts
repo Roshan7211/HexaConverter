@@ -6,6 +6,7 @@ import { JobStatus } from '@prisma/client';
 
 import { serverEnv } from '@/lib/env';
 import { currentUser } from '@/lib/firebase/session';
+import { isPaddleConfigured } from '@/lib/paddle';
 import { limitsFor, PLANS, type Limits, type PlanTier } from '@/lib/plans';
 import * as jobs from '@/database/repositories/job.repository';
 import {
@@ -171,10 +172,13 @@ export async function checkQuota(requester: Requester): Promise<QuotaVerdict> {
     // member allowance became a daily one.
     const freeWindow = PLANS.FREE.periodDays === 1 ? 'a day' : 'a month';
 
+    // Never point someone at a plan they cannot buy. While payments are
+    // unconfigured the honest answer to a member at their ceiling is when it
+    // frees up, not an upsell to a checkout that does not exist.
     const nextStep =
       requester.tier === 'ANONYMOUS'
         ? ` Creating a free account raises this to ${PLANS.FREE.jobsPerPeriod} ${freeWindow}.`
-        : requester.tier === 'FREE'
+        : requester.tier === 'FREE' && isPaddleConfigured
           ? ' Premium removes the limit.'
           : '';
 

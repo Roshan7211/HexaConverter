@@ -15,7 +15,7 @@ import { cn, formatBytes } from '@/utils';
 export const metadata: Metadata = buildMetadata({
   title: 'Pricing',
   description:
-    'Convert files free without an account. A free account raises every limit and adds conversion history. Premium is £9.99 a year for 2 GB files, no monthly limit and no ads.',
+    'Convert files free without an account. A free account raises every limit, keeps your conversion history and adds text recognition.',
   path: '/pricing',
 });
 
@@ -56,6 +56,20 @@ const TIERS = [
   },
 ];
 
+/**
+ * Premium is only shown when it can actually be bought.
+ *
+ * A price with a "coming soon" button is an upsell that goes nowhere: the
+ * people most likely to click it are the ones already hitting a limit, and it
+ * reads to a reviewer as a half-finished site. Gating on the same flag the
+ * checkout uses means the column disappears while payments are unconfigured and
+ * returns on its own the moment the Paddle keys are set — no code change, no
+ * risk of it being forgotten in either direction.
+ */
+const VISIBLE_TIERS = isPaddleConfigured
+  ? TIERS
+  : TIERS.filter((tier) => tier.id !== 'PREMIUM');
+
 function rows(id: 'ANONYMOUS' | 'FREE' | 'PREMIUM') {
   const plan = PLANS[id];
 
@@ -87,6 +101,25 @@ function rows(id: 'ANONYMOUS' | 'FREE' | 'PREMIUM') {
   ];
 }
 
+/**
+ * Rows worth showing, given which tiers are visible.
+ *
+ * With Premium hidden, "Ad-free" and "Priority queue" would be a dash on every
+ * remaining plan — a row advertising something nobody can have, which reads as
+ * the service lacking it rather than as a paid extra. Measured rows always
+ * stay; a yes/no row survives only if some visible plan answers yes.
+ */
+const VISIBLE_ROWS = new Set(
+  rows('ANONYMOUS')
+    .map((row) => row.label)
+    .filter((label) =>
+      VISIBLE_TIERS.some((tier) => {
+        const value = rows(tier.id).find((row) => row.label === label)?.value;
+        return typeof value !== 'boolean' || value;
+      }),
+    ),
+);
+
 export default async function PricingPage() {
   const user = await currentUser();
 
@@ -96,19 +129,42 @@ export default async function PricingPage() {
         <Badge variant="accent" className="mb-4">
           Pricing
         </Badge>
+        {/* The headline has to match what the page can actually offer. With no
+            paid plan on it, "pay only if you need more" points at nothing. */}
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
-          Convert free. Pay only if you need more.
+          {isPaddleConfigured
+            ? 'Convert free. Pay only if you need more.'
+            : 'Free to use. Better with an account.'}
         </h1>
         <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
-          Every conversion produces exactly what the encoder emitted, on every
-          plan. There is no watermark, no degraded output and no upsell wall
-          between you and your file &mdash; paying raises limits, it does not
-          unlock quality.
+          {isPaddleConfigured ? (
+            <>
+              Every conversion produces exactly what the encoder emitted, on
+              every plan. There is no watermark, no degraded output and no
+              upsell wall between you and your file &mdash; paying raises
+              limits, it does not unlock quality.
+            </>
+          ) : (
+            <>
+              Every conversion produces exactly what the encoder emitted. There
+              is no watermark, no degraded output and no upsell wall between you
+              and your file. An account is free, and raises every limit on this
+              page.
+            </>
+          )}
         </p>
       </div>
 
-      <div className="mx-auto mt-14 grid max-w-5xl gap-5 lg:grid-cols-3">
-        {TIERS.map((tier) => (
+      <div
+        className={cn(
+          'mx-auto mt-14 grid gap-5',
+          // Two cards in a three-column grid would sit stranded to one side.
+          VISIBLE_TIERS.length > 2
+            ? 'max-w-5xl lg:grid-cols-3'
+            : 'max-w-3xl sm:grid-cols-2',
+        )}
+      >
+        {VISIBLE_TIERS.map((tier) => (
           <section
             key={tier.id}
             aria-labelledby={`plan-${tier.id}`}
@@ -145,29 +201,31 @@ export default async function PricingPage() {
             <p className="mt-1 text-sm text-muted-foreground">{tier.note}</p>
 
             <ul className="mt-6 flex-1 space-y-2.5 text-sm">
-              {rows(tier.id).map((row) => (
-                <li
-                  key={row.label}
-                  className="flex items-center justify-between gap-3"
-                >
-                  <span className="text-muted-foreground">{row.label}</span>
-                  {typeof row.value === 'boolean' ? (
-                    row.value ? (
-                      <Check
-                        className="size-4 shrink-0 text-success"
-                        aria-label="Included"
-                      />
+              {rows(tier.id)
+                .filter((row) => VISIBLE_ROWS.has(row.label))
+                .map((row) => (
+                  <li
+                    key={row.label}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <span className="text-muted-foreground">{row.label}</span>
+                    {typeof row.value === 'boolean' ? (
+                      row.value ? (
+                        <Check
+                          className="size-4 shrink-0 text-success"
+                          aria-label="Included"
+                        />
+                      ) : (
+                        <Minus
+                          className="size-4 shrink-0 text-muted-foreground/60"
+                          aria-label="Not included"
+                        />
+                      )
                     ) : (
-                      <Minus
-                        className="size-4 shrink-0 text-muted-foreground/60"
-                        aria-label="Not included"
-                      />
-                    )
-                  ) : (
-                    <span className="font-medium">{row.value}</span>
-                  )}
-                </li>
-              ))}
+                      <span className="font-medium">{row.value}</span>
+                    )}
+                  </li>
+                ))}
             </ul>
 
             <div className="mt-6">
@@ -194,14 +252,28 @@ export default async function PricingPage() {
         ))}
       </div>
 
+      {/* The asterisk belongs to Premium's "Unlimited*", so the Premium half
+          goes with it. The rolling-window explanation is true of the free plans
+          on their own and is the part people actually ask about. */}
       <p className="mx-auto mt-8 max-w-2xl text-center text-xs leading-relaxed text-muted-foreground">
-        *Premium has a fair-use ceiling of{' '}
-        {PLANS.PREMIUM.jobsPerPeriod.toLocaleString()} conversions a month.
-        Conversion is real work on real hardware, so an unbounded allowance is
-        not something anyone can honestly promise &mdash; but the ceiling sits
-        far above what normal use reaches. Allowances are counted over a rolling
-        window &mdash; 24 hours on the free plans, 30 days on Premium &mdash; so
-        they free up gradually rather than resetting on a fixed date.
+        {isPaddleConfigured ? (
+          <>
+            *Premium has a fair-use ceiling of{' '}
+            {PLANS.PREMIUM.jobsPerPeriod.toLocaleString()} conversions a month.
+            Conversion is real work on real hardware, so an unbounded allowance
+            is not something anyone can honestly promise &mdash; but the ceiling
+            sits far above what normal use reaches. Allowances are counted over
+            a rolling window &mdash; 24 hours on the free plans, 30 days on
+            Premium &mdash; so they free up gradually rather than resetting on a
+            fixed date.
+          </>
+        ) : (
+          <>
+            Allowances are counted over a rolling 24-hour window rather than
+            resetting at midnight, so they free up gradually as older
+            conversions age out.
+          </>
+        )}
       </p>
 
       <div className="mx-auto mt-14 max-w-2xl space-y-6 rounded-2xl border bg-card p-6">
