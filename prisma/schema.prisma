@@ -256,7 +256,16 @@ model User {
   email         String  @unique
   emailVerified Boolean @default(false)
   displayName   String?
+
+  /// Cached from the sign-in provider — Google supplies one, email/password
+  /// does not. Refreshed from the token on every sign-in, so it must never
+  /// hold anything the person chose themselves.
   photoUrl      String?
+
+  /// Storage key for a picture the person uploaded, which wins over
+  /// `photoUrl`. Kept in its own column precisely because the sync above
+  /// overwrites `photoUrl` on every sign-in and would erase their choice.
+  avatarKey     String?
 
   /// Current entitlement. Set to `PREMIUM` by a completed purchase, and back to
   /// `FREE` when one lapses; until billing exists it is only ever changed by

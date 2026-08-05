@@ -144,8 +144,13 @@ export async function currentTier(): Promise<PlanTier> {
 /** What the header and the account page need to describe someone's standing. */
 export interface AccountSummary {
   tier: PlanTier;
-  /** Cached Firebase profile, for the avatar and the greeting. */
+  /** Cached Firebase profile, for the greeting. */
   displayName: string | null;
+  /**
+   * The picture to show: an uploaded one when there is one, otherwise
+   * whatever the sign-in provider supplied. Google gives one and
+   * email/password does not, which is the whole reason uploading exists.
+   */
   photoUrl: string | null;
   email: string;
   /** Conversions spent in the current window, and the ceiling. */
@@ -185,7 +190,11 @@ export async function currentAccountSummary(): Promise<AccountSummary | null> {
   return {
     tier,
     displayName: account.displayName ?? null,
-    photoUrl: account.photoUrl ?? null,
+    // `updatedAt` versions the URL so the browser picks up a change the moment
+    // it happens, while still caching the image hard in between.
+    photoUrl: account.avatarKey
+      ? `/api/account/avatar?v=${account.updatedAt.getTime()}`
+      : (account.photoUrl ?? null),
     email: account.email,
     used,
     limit: limits.jobsPerPeriod,

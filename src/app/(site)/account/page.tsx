@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { ConversionHistory } from '@/components/auth/conversion-history';
 import { DeleteAccount } from '@/components/auth/delete-account';
+import { ProfilePicture } from '@/components/auth/profile-picture';
 import { VerifyEmailNotice } from '@/components/auth/verify-email-notice';
 import { listForUser } from '@/database/repositories/job.repository';
 import { findByFirebaseUid } from '@/database/repositories/user.repository';
@@ -39,6 +40,14 @@ export default async function AccountPage() {
           still does not.
         </p>
       </div>
+
+      {summary ? (
+        <ProfilePicture
+          photoUrl={summary.photoUrl}
+          email={user.email}
+          hasUpload={Boolean(account?.avatarKey)}
+        />
+      ) : null}
 
       <dl className="space-y-3 rounded-xl border bg-card p-4 text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">

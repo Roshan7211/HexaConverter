@@ -20,6 +20,9 @@ export interface UserRecord {
   emailVerified: boolean;
   displayName: string | null;
   photoUrl: string | null;
+  avatarKey: string | null;
+  /** Bumped on every write, and used to version the avatar URL. */
+  updatedAt: Date;
   planTier: PlanTier;
   premiumUntil: Date | null;
 }
@@ -31,6 +34,8 @@ const columns = {
   emailVerified: true,
   displayName: true,
   photoUrl: true,
+  avatarKey: true,
+  updatedAt: true,
   planTier: true,
   premiumUntil: true,
 } as const;
@@ -61,6 +66,24 @@ export function upsertFromClaims(claims: {
     where: { firebaseUid: claims.firebaseUid },
     create: { firebaseUid: claims.firebaseUid, ...profile },
     update: { ...profile, lastSeenAt: new Date() },
+    select: columns,
+  });
+}
+
+/**
+ * Points the account at an uploaded picture, or clears it.
+ *
+ * Deliberately separate from `upsertFromClaims`: that refreshes the provider's
+ * photo on every sign-in, so writing a chosen picture into the same column
+ * would erase it the next time the person signed in.
+ */
+export function setAvatarKey(
+  userId: string,
+  avatarKey: string | null,
+): Promise<UserRecord> {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { avatarKey },
     select: columns,
   });
 }
