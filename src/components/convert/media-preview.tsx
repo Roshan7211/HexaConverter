@@ -130,7 +130,9 @@ export function MediaPreview({ item, targetFormat }: Props) {
         </button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-3xl">
+      {/* Same cap as the image preview: a dialog taller than the screen with
+          nothing to scroll puts its own title out of reach on a phone. */}
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="truncate">{item.name}</DialogTitle>
           <DialogDescription>

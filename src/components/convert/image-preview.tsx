@@ -123,7 +123,11 @@ export function ImagePreview({ item, targetFormat }: Props) {
         </button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-3xl">
+      {/* Capped to the visible area and scrolling inside it. Left to size
+          itself the dialog ran 752px tall on a 568px screen: centring then put
+          its top 92px above the viewport, and with nothing scrollable the title
+          and the download button were simply unreachable on a phone. */}
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="truncate">{item.name}</DialogTitle>
           <DialogDescription>
@@ -140,7 +144,7 @@ export function ImagePreview({ item, targetFormat }: Props) {
               <img
                 src={item.previewUrl}
                 alt={`Original ${item.name}`}
-                className="max-h-72 w-auto object-contain"
+                className="max-h-48 w-auto object-contain sm:max-h-72"
               />
             </div>
             <figcaption className="text-center text-xs text-muted-foreground">
@@ -157,7 +161,7 @@ export function ImagePreview({ item, targetFormat }: Props) {
                 <img
                   src={item.downloadUrl!}
                   alt={`Converted ${item.outputName ?? item.name}`}
-                  className="max-h-72 w-auto object-contain"
+                  className="max-h-48 w-auto object-contain sm:max-h-72"
                   onError={() => setFailed(true)}
                 />
               ) : (

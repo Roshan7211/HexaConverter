@@ -4,7 +4,10 @@ import { JobStatus, type Prisma } from '@prisma/client';
 
 import { toJobDto, type JobDto } from '@/api/dto/job.dto';
 import * as jobs from '@/database/repositories/job.repository';
-import type { Requester } from '@/services/identity/identity.service';
+import {
+  ownerScope,
+  type Requester,
+} from '@/services/identity/identity.service';
 import { logger } from '@/lib/logger';
 import { storage } from '@/services/storage';
 import type { Category } from '@/types/conversion';
@@ -29,8 +32,21 @@ export function toPrismaCategory(category: Category): FileCategory {
   return SLUG_TO_CATEGORY[category];
 }
 
+/**
+ * Ownership for every lookup in this file.
+ *
+ * This dropped `userId` and passed the guest id alone, which quietly broke
+ * every signed-in conversion. `ownerFilter` reads a scope without a user as an
+ * anonymous one and demands `userId: null`; a job created while signed in has a
+ * `userId` set, so it could never match its own owner. The conversion ran, the
+ * output was written, and the status endpoint answered 404 forever — the file
+ * appeared stuck at "Queued" and was unreachable.
+ *
+ * `ownerScope` is the one definition of who owns what, and is what job creation
+ * already used. The two disagreeing is what caused this.
+ */
 function scope(requester: Requester): jobs.OwnerScope {
-  return { guestId: requester.guestId };
+  return ownerScope(requester);
 }
 
 export async function getOwnedJob(

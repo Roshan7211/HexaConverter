@@ -76,6 +76,15 @@ export interface ConversionItem {
 }
 
 const POLL_INTERVAL_MS = 1_500;
+
+/**
+ * Consecutive failed polls before a conversion is declared lost.
+ *
+ * Twelve ticks is eighteen seconds — long enough that a flaky connection or a
+ * server restart recovers on its own, short enough that nobody sits watching a
+ * spinner that will never move.
+ */
+const MAX_POLL_FAILURES = 12;
 const TERMINAL: ReadonlySet<ItemStatus> = new Set([
   'completed',
   'failed',
@@ -431,6 +440,9 @@ export function useConversion({
    * this rather than on `items`, so a progress update does not tear down and
    * restart the interval on every tick.
    */
+  /** Consecutive failed polls per job, so a persistent fault stops being silent. */
+  const pollFailures = useRef(new Map<string, number>());
+
   const activeJobKey = items
     .filter(
       (item) =>
@@ -502,8 +514,24 @@ export function useConversion({
             } else if (status === 'failed' && job.error) {
               toast.error(job.error);
             }
+            pollFailures.current.delete(item.jobId!);
           } catch {
-            // Transient network failure — the next tick retries.
+            // A tick failing is usually a blip, so retry quietly. Failing over
+            // and over is not a blip, and treating it as one is how a job whose
+            // status endpoint answered 404 forever sat at "Queued" until the
+            // visitor gave up — the conversion had finished and nobody could
+            // tell. After enough consecutive failures, say so.
+            const seen = (pollFailures.current.get(item.jobId!) ?? 0) + 1;
+            pollFailures.current.set(item.jobId!, seen);
+
+            if (seen >= MAX_POLL_FAILURES) {
+              pollFailures.current.delete(item.jobId!);
+              patch(item.localId, {
+                status: 'failed',
+                error:
+                  'Lost track of this conversion. It may have finished — reload the page to check before converting it again.',
+              });
+            }
           }
         }),
       );
