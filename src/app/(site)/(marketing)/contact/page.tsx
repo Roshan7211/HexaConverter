@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { BookOpen, LifeBuoy, ShieldQuestion } from 'lucide-react';
 
 import { ContactForm } from '@/components/marketing/contact-form';
+import { SUPPORT_EMAIL } from '@/lib/contact';
 import { buildMetadata } from '@/lib/seo';
 
 export const metadata: Metadata = buildMetadata({
@@ -47,7 +48,19 @@ export default function ContactPage() {
             >
               FAQ
             </Link>{' '}
-            first — it covers most questions. Anything else, use the form below.
+            first — it covers most questions. Anything else, use the form below
+            or email us directly.
+          </p>
+          {/* Stated in full rather than hidden behind the form. A reachable
+              address is what a payment provider's review looks for, and some
+              people would simply rather use their own mail client. */}
+          <p className="mt-4 text-lg">
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {SUPPORT_EMAIL}
+            </a>
           </p>
         </div>
       </section>
