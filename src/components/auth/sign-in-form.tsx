@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  getRedirectResult,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
 } from 'firebase/auth';
 import { toast } from 'sonner';
 
@@ -53,6 +55,8 @@ function describe(code: string, mode: Mode): string {
     case 'auth/popup-closed-by-user':
     case 'auth/cancelled-popup-request':
       return '';
+    case 'auth/popup-blocked':
+      return 'Your browser blocked the sign-in window. Allow pop-ups for this site, or try again — we will send you to Google directly.';
     case 'auth/unauthorized-domain':
       return 'This domain is not authorised in Firebase.';
     default:
@@ -69,6 +73,54 @@ export function SignInForm({ mode }: { mode: Mode }) {
   const [busy, setBusy] = useState(false);
 
   const auth = firebaseAuth();
+
+  /**
+   * Finishes a redirect sign-in when the browser comes back from Google.
+   *
+   * The pop-up path resolves inside the same page, so it can act on the result
+   * directly. A redirect does not: the visitor returns on a fresh page load,
+   * and without this they arrive signed in to Firebase but with no session
+   * cookie — indistinguishable, from their side, from the sign-in having
+   * silently failed.
+   *
+   * Declared above the early return below because hooks cannot run
+   * conditionally; the effect itself does nothing when Firebase is absent.
+   */
+  useEffect(() => {
+    if (!auth) return;
+    let cancelled = false;
+
+    void getRedirectResult(auth)
+      .then(async (credential) => {
+        // Null on an ordinary page load that did not come back from Google.
+        if (!credential || cancelled) return;
+
+        setBusy(true);
+        const response = await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: await credential.user.getIdToken() }),
+        });
+        if (!response.ok) throw new Error('Could not start your session.');
+
+        router.push('/');
+        router.refresh();
+      })
+      .catch((error: unknown) => {
+        const code = (error as { code?: string })?.code ?? '';
+        const message = code
+          ? describe(code, mode)
+          : ((error as Error).message ?? '');
+        if (message) toast.error(message);
+      })
+      .finally(() => {
+        if (!cancelled) setBusy(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [auth, mode, router]);
 
   // Rendered rather than thrown: a build without Firebase configured should
   // still serve this page, just without a broken form on it.
@@ -130,11 +182,30 @@ export function SignInForm({ mode }: { mode: Mode }) {
       router.refresh();
     } catch (error) {
       const code = (error as { code?: string })?.code ?? '';
-      const message = code
-        ? describe(code, mode)
-        : ((error as Error).message ?? '');
-      // Empty for a closed popup — that is a decision, not a failure.
-      if (message) toast.error(message);
+
+      // A pop-up is the nicer flow when it works, and on mobile it frequently
+      // does not: iOS Safari blocks windows it does not consider a direct
+      // result of the tap, and in-app browsers often have no pop-ups at all.
+      // The failure is silent from the visitor's side — they tap, nothing
+      // happens — so fall back to sending them to Google in this tab instead
+      // of reporting an error they cannot act on.
+      if (
+        code === 'auth/popup-blocked' ||
+        code === 'auth/operation-not-supported-in-this-environment'
+      ) {
+        try {
+          await signInWithRedirect(auth, new GoogleAuthProvider());
+          return; // The page navigates away; `busy` no longer matters.
+        } catch {
+          toast.error('Could not reach Google. Please try again.');
+        }
+      } else {
+        const message = code
+          ? describe(code, mode)
+          : ((error as Error).message ?? '');
+        // Empty for a closed popup — that is a decision, not a failure.
+        if (message) toast.error(message);
+      }
     } finally {
       setBusy(false);
     }
