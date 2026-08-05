@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { AuthShell } from '@/components/auth/auth-shell';
 import { SignInForm } from '@/components/auth/sign-in-form';
 import { currentUser } from '@/lib/firebase/session';
 import { buildMetadata } from '@/lib/seo';
@@ -18,30 +19,22 @@ export default async function SignUpPage() {
   if (await currentUser()) redirect('/');
 
   return (
-    <div className="container flex justify-center py-16">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Create an account
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Optional, and free. Every conversion works without one — an account
-            only keeps your history together.
-          </p>
-        </div>
-
-        <SignInForm mode="sign-up" />
-
-        <p className="text-center text-sm text-muted-foreground">
+    <AuthShell
+      title="Create an account"
+      subtitle="Optional, and free. Every conversion works without one — an account raises the limits and keeps your history together."
+      footer={
+        <>
           Already have one?{' '}
           <Link
             href="/sign-in"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
+            className="inline-block font-medium text-foreground underline-offset-4 hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
           >
             Sign in
           </Link>
-        </p>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <SignInForm mode="sign-up" />
+    </AuthShell>
   );
 }

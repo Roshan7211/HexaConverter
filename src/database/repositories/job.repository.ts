@@ -235,6 +235,20 @@ export async function claimGuestJobs(
   return count;
 }
 
+/**
+ * Conversions counted against an account, ignoring the browser entirely.
+ *
+ * `countForOwner` needs a guest id because it answers "what may this browser
+ * see". Usage is a different question — how much of the allowance the *account*
+ * has spent — and it has to give the same answer on a phone as on a laptop.
+ */
+export function countForUser(
+  userId: string,
+  where: Prisma.ConversionJobWhereInput = {},
+) {
+  return prisma.conversionJob.count({ where: { userId, ...where } });
+}
+
 /** History for the account page. Only ever the account's own conversions. */
 export function listForUser(userId: string, limit: number) {
   return prisma.conversionJob.findMany({

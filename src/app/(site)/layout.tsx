@@ -7,7 +7,7 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { isAdminConfigured } from '@/lib/firebase/admin';
 import { currentUser } from '@/lib/firebase/session';
 import { limitsFor } from '@/lib/plans';
-import { currentTier } from '@/services/identity/identity.service';
+import { currentAccountSummary } from '@/services/identity/identity.service';
 
 /**
  * Public site shell.
@@ -27,11 +27,12 @@ export default async function SiteLayout({
   // someone who is already signed in, on every page load.
   const user = await currentUser();
 
-  // Entitlement only, resolved from the account rather than the guest cookie.
-  // Someone who has just signed up has a session but no guest id yet, and
-  // reading ownership here would call them anonymous and show them advertising
-  // their plan says they should never see.
-  const tier = await currentTier();
+  // Entitlement and usage together, resolved from the account rather than the
+  // guest cookie. Someone who has just signed up has a session but no guest id
+  // yet, and reading ownership here would call them anonymous and show them
+  // advertising their plan says they should never see.
+  const account = await currentAccountSummary();
+  const tier = account?.tier ?? 'ANONYMOUS';
 
   const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 
@@ -59,7 +60,19 @@ export default async function SiteLayout({
       </a>
 
       <SiteHeader
-        user={user ? { email: user.email } : null}
+        user={
+          user
+            ? {
+                email: account?.email ?? user.email,
+                displayName: account?.displayName ?? null,
+                photoUrl: account?.photoUrl ?? null,
+                used: account?.used ?? 0,
+                limit: account?.limit ?? 0,
+                remaining: account?.remaining ?? 0,
+                periodDays: account?.periodDays ?? 1,
+              }
+            : null
+        }
         accountsEnabled={isAdminConfigured()}
       />
       <main id="main-content" className="flex-1">

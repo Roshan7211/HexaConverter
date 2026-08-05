@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 
 import { ChevronDown, Menu, X } from 'lucide-react';
 
-import { UserMenu } from '@/components/auth/user-menu';
+import { UserMenu, type AccountMenuProps } from '@/components/auth/user-menu';
 import { Logo } from '@/components/layout/logo';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ import { cn } from '@/utils';
 
 export interface SiteHeaderProps {
   /** The signed-in person, resolved on the server. Null when signed out. */
-  user: { email: string } | null;
+  user: AccountMenuProps | null;
   /** False when the deployment has no Firebase configuration at all. */
   accountsEnabled: boolean;
 }
@@ -173,7 +173,7 @@ export function SiteHeader({ user, accountsEnabled }: SiteHeaderProps) {
               entirely when accounts are not configured. */}
           {accountsEnabled ? (
             user ? (
-              <UserMenu email={user.email} />
+              <UserMenu {...user} />
             ) : (
               <Button
                 variant="ghost"

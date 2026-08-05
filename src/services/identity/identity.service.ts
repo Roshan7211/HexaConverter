@@ -141,6 +141,59 @@ export async function currentTier(): Promise<PlanTier> {
   return tierFor(await currentAccount());
 }
 
+/** What the header and the account page need to describe someone's standing. */
+export interface AccountSummary {
+  tier: PlanTier;
+  /** Cached Firebase profile, for the avatar and the greeting. */
+  displayName: string | null;
+  photoUrl: string | null;
+  email: string;
+  /** Conversions spent in the current window, and the ceiling. */
+  used: number;
+  limit: number;
+  remaining: number;
+  /** Length of the rolling window, in days. */
+  periodDays: number;
+}
+
+/**
+ * Everything about the signed-in account, in one pass.
+ *
+ * The site layout needs the tier for advertising and the usage for the account
+ * menu, and the account page needs both again. Resolving them separately meant
+ * three lookups of the same row on every request; this is one.
+ *
+ * Usage is counted against the account rather than the browser on purpose. The
+ * allowance follows the person, so it has to read the same on their phone as
+ * on their laptop — which counting by guest cookie would not.
+ */
+export async function currentAccountSummary(): Promise<AccountSummary | null> {
+  const account = await currentAccount();
+  if (!account) return null;
+
+  const tier = tierFor(account);
+  const limits = limitsFor(tier);
+  const periodStart = new Date(
+    Date.now() - limits.periodDays * 24 * 60 * 60 * 1000,
+  );
+
+  const used = await jobs.countForUser(account.id, {
+    createdAt: { gte: periodStart },
+    status: { not: JobStatus.CANCELLED },
+  });
+
+  return {
+    tier,
+    displayName: account.displayName ?? null,
+    photoUrl: account.photoUrl ?? null,
+    email: account.email,
+    used,
+    limit: limits.jobsPerPeriod,
+    remaining: Math.max(0, limits.jobsPerPeriod - used),
+    periodDays: limits.periodDays,
+  };
+}
+
 export interface QuotaVerdict {
   allowed: boolean;
   reason?: string;
