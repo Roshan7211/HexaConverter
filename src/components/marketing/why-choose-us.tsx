@@ -6,7 +6,7 @@ import { Reveal, RevealGroup, RevealItem } from '@/components/marketing/reveal';
 import { Badge } from '@/components/ui/badge';
 import { PLANS } from '@/lib/plans';
 import { TOTAL_ROUTES } from '@/services/conversion/registry';
-import { formatBytes } from '@/utils';
+import { cn, formatBytes } from '@/utils';
 
 /**
  * Why Choose Us.
@@ -39,6 +39,18 @@ const DIFFERENTIATORS = [
     body: `Convert immediately, no signup wall. A free account raises it to ${formatBytes(PLANS.FREE.maxFileBytes, 0)} and keeps your history.`,
   },
 ] as const;
+
+/**
+ * One grid definition shared by the header and every row.
+ *
+ * The header and the rows are separate grid containers, so `auto` columns sized
+ * themselves independently — the header's by its text, each row's by a 16px
+ * icon — and no amount of alignment inside them could line the ticks up under
+ * their headings. Fixed widths give both grids the same columns, which is the
+ * only thing that makes the two agree.
+ */
+const COMPARISON_GRID =
+  'grid grid-cols-[1fr_4rem_4.5rem] gap-x-3 px-6 sm:grid-cols-[1fr_5rem_5.5rem] sm:gap-x-6';
 
 const COMPARISON = [
   { claim: 'No watermark on output', us: true, them: false },
@@ -97,20 +109,28 @@ export function WhyChooseUs() {
 
       <Reveal className="mx-auto mt-16 max-w-3xl">
         <div className="glass-panel gradient-ring overflow-hidden">
-          <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 border-b bg-muted/30 px-6 py-4 text-xs font-semibold uppercase tracking-wide sm:gap-x-8">
+          <div
+            className={cn(
+              COMPARISON_GRID,
+              'border-b bg-muted/30 py-4 text-xs font-semibold uppercase tracking-wide',
+            )}
+          >
             <span className="text-muted-foreground">What you get</span>
-            <span className="flex items-center gap-1.5 text-primary">
+            <span className="flex items-center justify-center gap-1.5 text-primary">
               <Sparkles className="size-3.5" aria-hidden="true" />
               Us
             </span>
-            <span className="text-right text-muted-foreground">Typical</span>
+            <span className="text-center text-muted-foreground">Typical</span>
           </div>
 
           <ul>
             {COMPARISON.map((row) => (
               <li
                 key={row.claim}
-                className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 border-b px-6 py-3.5 text-sm last:border-0 sm:gap-x-8"
+                className={cn(
+                  COMPARISON_GRID,
+                  'items-center border-b py-3.5 text-sm last:border-0',
+                )}
               >
                 <span>{row.claim}</span>
                 <span className="flex justify-center">
@@ -119,7 +139,7 @@ export function WhyChooseUs() {
                     aria-label="Included"
                   />
                 </span>
-                <span className="flex justify-end">
+                <span className="flex justify-center">
                   <Minus
                     className="size-4 text-muted-foreground/60"
                     aria-label="Not included"
