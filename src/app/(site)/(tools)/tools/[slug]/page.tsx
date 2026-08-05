@@ -7,6 +7,7 @@ import { ArrowRight } from 'lucide-react';
 import { Converter } from '@/components/convert/converter';
 import { AdSlot } from '@/components/ads/ad-slot';
 import { FaqSection } from '@/components/marketing/faq-section';
+import { FormatGuide } from '@/components/marketing/format-guide';
 import { Badge } from '@/components/ui/badge';
 import {
   getFormat,
@@ -103,7 +104,7 @@ export default async function ToolPage({ params }: PageProps) {
     {
       question: `Is converting ${from.id.toUpperCase()} to ${to.id.toUpperCase()} free?`,
       answer:
-        'Yes, and there is nothing to sign up for. Every conversion is free, there is no paid tier, and the limits are the same for everyone.',
+        'Yes, and there is nothing to sign up for. Every conversion route is free on every plan — paying raises limits such as file size and how many conversions you get, and removes advertising. It never unlocks a format, adds a watermark or degrades the output.',
     },
     {
       question: `Will the quality change when converting to ${to.label}?`,
@@ -214,26 +215,7 @@ export default async function ToolPage({ params }: PageProps) {
             About {from.id.toUpperCase()} and {to.id.toUpperCase()}
           </h2>
 
-          <div className="mt-6 grid gap-6 sm:grid-cols-2">
-            <div className="rounded-xl border bg-card p-5">
-              <h3 className="font-semibold">{from.label}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {from.description}
-              </p>
-              <p className="mt-3 font-mono text-xs text-muted-foreground">
-                {from.mime}
-              </p>
-            </div>
-            <div className="rounded-xl border bg-card p-5">
-              <h3 className="font-semibold">{to.label}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {to.description}
-              </p>
-              <p className="mt-3 font-mono text-xs text-muted-foreground">
-                {to.mime}
-              </p>
-            </div>
-          </div>
+          <FormatGuide from={from} to={to} />
 
           {related.length > 0 ? (
             <div className="mt-10">
