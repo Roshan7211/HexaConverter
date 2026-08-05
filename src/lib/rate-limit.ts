@@ -51,6 +51,11 @@ export const RATE_LIMITS = {
   // sharing the `upload` budget would make chunking count against itself.
   chunk: { limit: 2_000, windowSeconds: 60 * 10 },
   job: { limit: 30, windowSeconds: 60 * 10 },
+  // Importing a link makes us fetch a third party on the caller's behalf, so
+  // it gets its own budget rather than sharing the upload one. Sized against
+  // the largest batch a plan allows: a tighter ceiling than `maxBatchFiles`
+  // would refuse someone halfway through assembling a legitimate batch.
+  urlImport: { limit: 20, windowSeconds: 60 * 10 },
   download: { limit: 120, windowSeconds: 60 * 10 },
   auth: { limit: 10, windowSeconds: 60 * 15 },
   register: { limit: 5, windowSeconds: 60 * 60 },

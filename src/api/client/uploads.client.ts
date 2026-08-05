@@ -270,3 +270,34 @@ function errorMessage(responseText: string): string {
     return 'The upload was rejected.';
   }
 }
+
+/**
+ * Retrieves a pasted link through our server and returns it as a `File`.
+ *
+ * The round trip exists because the browser cannot fetch an arbitrary URL
+ * itself — cross-origin rules forbid reading the response — and because a URL
+ * the visitor chose must never be fetched without the checks on the server
+ * side. What comes back is an ordinary file, so every path after this point is
+ * the one a dropped file already takes.
+ */
+export async function importFromUrl(url: string): Promise<File> {
+  const response = await fetch('/api/uploads/from-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as ApiError | null;
+    throw new Error(body?.error ?? 'That link could not be imported.');
+  }
+
+  const name = decodeURIComponent(
+    response.headers.get('x-file-name') ?? 'download',
+  );
+  const blob = await response.blob();
+
+  return new File([blob], name, {
+    type: blob.type || 'application/octet-stream',
+  });
+}

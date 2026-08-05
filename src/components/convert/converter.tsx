@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { Dropzone } from '@/components/convert/dropzone';
+import { UrlImport } from '@/components/convert/url-import';
 
 /**
  * The file list and the encoder controls are split out of the initial bundle.
@@ -129,6 +130,14 @@ export function Converter({
         hint={hint}
       />
 
+      {/* Below the dropzone rather than inside it: dropping and pasting a link
+          are alternatives, and putting a text field inside a drop target makes
+          both harder to hit. */}
+      <UrlImport
+        onFile={addFiles}
+        disabled={items.length >= limits.maxBatchFiles}
+      />
+
       {items.length > 0 ? (
         <>
           <FileList
@@ -200,7 +209,13 @@ export function Converter({
                   onClick={() => void convert()}
                   disabled={!canConvert}
                   loading={isBusy && readyCount === 0}
-                  className="flex-1 sm:flex-none"
+                  // `size="lg"` carries 32px of padding a side. Together with
+                  // both icons and the label that exceeds what is left beside
+                  // Clear on a 320px screen, and a flex item will not shrink
+                  // below its content — so the row pushed the whole page 15px
+                  // wide as soon as a file was added. Narrow screens get the
+                  // tighter padding; everything else is unchanged.
+                  className="flex-1 px-4 sm:flex-none sm:px-8"
                 >
                   <Sparkles aria-hidden="true" />
                   Convert {readyCount > 1 ? `${readyCount} files` : 'file'}
