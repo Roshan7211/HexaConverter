@@ -92,6 +92,7 @@ export function Converter({
     initialTarget,
     maxFiles: limits.maxBatchFiles,
     maxFileBytes: limits.maxFileBytes,
+    concurrentJobs: limits.concurrentJobs,
   });
 
   const {

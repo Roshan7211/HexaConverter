@@ -253,6 +253,10 @@ export function FileRow({
               size="sm"
               variant="outline"
               onClick={() => onRetryUpload(item.localId)}
+              // The label is hidden below `sm`, and the icon is decorative —
+              // which left this button with no accessible name at all on a
+              // phone. Naming it here covers both widths.
+              aria-label={`Retry uploading ${item.name}`}
             >
               <RotateCcw aria-hidden="true" />
               <span className="hidden sm:inline">Retry</span>
@@ -264,6 +268,10 @@ export function FileRow({
               <a
                 href={item.downloadUrl}
                 download={item.outputName ?? undefined}
+                // Same as Retry, and it matters more: this is the one control
+                // the whole page exists for, and on a phone a screen reader
+                // announced it as an unnamed link.
+                aria-label={`Download ${item.outputName ?? item.name}`}
               >
                 <Download aria-hidden="true" />
                 <span className="hidden sm:inline">Download</span>

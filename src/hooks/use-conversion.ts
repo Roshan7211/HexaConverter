@@ -148,6 +148,8 @@ export interface UseConversionOptions {
   initialTarget?: string;
   maxFiles: number;
   maxFileBytes: number;
+  /** How many conversions the server will run at once for this visitor. */
+  concurrentJobs?: number;
 }
 
 export function useConversion({
@@ -155,6 +157,7 @@ export function useConversion({
   initialTarget,
   maxFiles,
   maxFileBytes,
+  concurrentJobs = 1,
 }: UseConversionOptions) {
   const [items, setItems] = useState<ConversionItem[]>([]);
   const [targetFormat, setTargetFormat] = useState<string>(initialTarget ?? '');
@@ -344,6 +347,29 @@ export function useConversion({
 
   // --- Conversion ---------------------------------------------------------
 
+  /**
+   * Blocks until fewer than `ceiling` conversions are in flight.
+   *
+   * Reads the live snapshot rather than React state so it sees jobs that
+   * finished while this loop was waiting. Bounded, because a job that never
+   * settles must not wedge the whole batch — the server's own refusal is the
+   * backstop if that ever happens.
+   */
+  const waitForSlot = useCallback(async (ceiling: number) => {
+    const inFlight = () =>
+      itemsRef.current.filter(
+        (item) => item.status === 'queued' || item.status === 'processing',
+      ).length;
+
+    for (
+      let waited = 0;
+      inFlight() >= ceiling && waited < 120_000;
+      waited += 400
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+  }, []);
+
   const convert = useCallback(async () => {
     const ready = itemsRef.current.filter(
       (item) => item.status === 'ready' && item.ticket,
@@ -406,6 +432,17 @@ export function useConversion({
     }
 
     for (const item of ready) {
+      // The server allows a fixed number of conversions at once — one for a
+      // guest. Firing the whole batch at it meant the first file converted and
+      // the rest came back "You already have 1 conversion in progress", which
+      // is a refusal nobody asked for: the batch size and the concurrency
+      // ceiling are different numbers, and a guest may add three files.
+      // Waiting for a slot turns that refusal into a queue.
+      //
+      // The wait comes before marking this item queued, not after. Marking it
+      // first makes it count towards the very ceiling it is waiting on, and a
+      // guest's ceiling of one meant the loop waited on itself forever.
+      await waitForSlot(concurrentJobs);
       patch(item.localId, { status: 'queued', progress: 0, error: null });
 
       try {
@@ -431,7 +468,7 @@ export function useConversion({
     }
 
     setIsConverting(false);
-  }, [combinePdf, options, patch, targetFormat]);
+  }, [combinePdf, concurrentJobs, options, patch, targetFormat, waitForSlot]);
 
   // --- Polling ------------------------------------------------------------
 
