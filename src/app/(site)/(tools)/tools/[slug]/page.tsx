@@ -85,16 +85,32 @@ export default async function ToolPage({ params }: PageProps) {
   const { route, from, to } = info;
   const title = `Convert ${from.label} to ${to.label}`;
 
-  const related = PUBLISHED_ROUTES.filter(
-    (candidate) =>
-      candidate.from === route.from &&
-      candidate.to !== route.to &&
-      candidate.to !== route.from,
-  ).slice(0, 8);
+  // The window into each sibling list is rotated by this route's own position.
+  // A plain `.slice(0, 8)` always surfaces the same head of the list, which
+  // left routes sorting late — `mov-to-opus`, `avi-to-aac` and four others —
+  // linked from nowhere on the site and reachable only through the sitemap.
+  const offset = PUBLISHED_ROUTES.findIndex(
+    (candidate) => candidate.from === route.from && candidate.to === route.to,
+  );
 
-  const alternatives = PUBLISHED_ROUTES.filter(
-    (candidate) => candidate.to === route.to && candidate.from !== route.from,
-  ).slice(0, 8);
+  const related = linkWindow(
+    PUBLISHED_ROUTES.filter(
+      (candidate) =>
+        candidate.from === route.from &&
+        candidate.to !== route.to &&
+        candidate.to !== route.from,
+    ),
+    offset,
+    8,
+  );
+
+  const alternatives = linkWindow(
+    PUBLISHED_ROUTES.filter(
+      (candidate) => candidate.to === route.to && candidate.from !== route.from,
+    ),
+    offset,
+    8,
+  );
 
   const faq = [
     {
@@ -309,6 +325,21 @@ export default async function ToolPage({ params }: PageProps) {
         }}
       />
     </>
+  );
+}
+
+/**
+ * A `count`-wide window into `items`, starting at `offset` and wrapping.
+ *
+ * Used to spread sibling links evenly across the route set: every route ends up
+ * linked from somewhere, and no two adjacent pages carry an identical link list.
+ */
+function linkWindow<T>(items: readonly T[], offset: number, count: number): T[] {
+  if (items.length <= count) return [...items];
+  const start = ((offset % items.length) + items.length) % items.length;
+  return Array.from(
+    { length: count },
+    (_, index) => items[(start + index) % items.length]!,
   );
 }
 
