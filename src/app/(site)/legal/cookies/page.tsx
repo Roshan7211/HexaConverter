@@ -11,7 +11,7 @@ export const metadata: Metadata = buildMetadata({
   path: '/legal/cookies',
 });
 
-const LAST_UPDATED = '2026-08-04';
+const LAST_UPDATED = '2026-08-22';
 
 export default function CookiesPage() {
   return (
@@ -94,6 +94,36 @@ export default function CookiesPage() {
         guest cookie means a conversion cannot be tied back to your browser, so
         you would not be able to download its result — but nothing about you is
         recorded either way.
+      </p>
+
+      <h3>Turning off personalised advertising</h3>
+      <p>
+        Google&rsquo;s advertising cookies can be controlled independently of
+        this site. Visiting{' '}
+        <a
+          href="https://www.google.com/settings/ads"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          Google Ads Settings
+        </a>{' '}
+        lets you turn off personalised advertising across every site that uses
+        Google&rsquo;s advertising, and{' '}
+        <a
+          href="https://www.aboutads.info/choices/"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          aboutads.info
+        </a>{' '}
+        offers the same for other vendors. Turning it off does not remove
+        advertising; it stops the advertising being tailored to you.
+      </p>
+      <p>
+        In the UK and the EEA the consent prompt shown before any advertising
+        loads is the more direct control, and your answer to it can be changed
+        at any time. Premium removes advertising altogether, and with it every
+        cookie described in this section.
       </p>
 
       <p>

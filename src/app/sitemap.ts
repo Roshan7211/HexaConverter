@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 
+import { GUIDES } from '@/content/guides';
 import { PUBLISHED_ROUTES, routeSlug } from '@/services/conversion/registry';
 import { ARCHIVE_OPERATION_SPECS } from '@/types/archives';
 import { PDF_OPERATION_SPECS } from '@/types/documents';
@@ -28,6 +29,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: url('/features'),
       lastModified: now,
       changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: url('/guides'),
+      lastModified: now,
+      changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
@@ -80,6 +87,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
+  const guideRoutes: MetadataRoute.Sitemap = GUIDES.map((guide) => ({
+    url: url(`/guides/${guide.slug}`),
+    lastModified: new Date(guide.updated ?? guide.published),
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  }));
+
   const categoryRoutes: MetadataRoute.Sitemap = CATEGORIES.map((category) => ({
     url: url(`/convert/${category}`),
     lastModified: now,
@@ -114,6 +128,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     ...staticRoutes,
+    ...guideRoutes,
     ...categoryRoutes,
     ...pdfToolRoutes,
     ...archiveToolRoutes,

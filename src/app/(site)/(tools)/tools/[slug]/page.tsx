@@ -5,6 +5,8 @@ import { notFound } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 
 import { Converter } from '@/components/convert/converter';
+import { guidesForConversion } from '@/content/guides';
+import { readingMinutes } from '@/content/guides/types';
 import { AdSlot } from '@/components/ads/ad-slot';
 import { FaqSection } from '@/components/marketing/faq-section';
 import { FormatGuide } from '@/components/marketing/format-guide';
@@ -111,6 +113,10 @@ export default async function ToolPage({ params }: PageProps) {
     offset,
     8,
   );
+
+  // Two at most: the point is to offer a way deeper into the site, not to
+  // bury the converter under a reading list.
+  const guides = guidesForConversion(from.id, to.id).slice(0, 2);
 
   const faq = [
     {
@@ -272,6 +278,32 @@ export default async function ToolPage({ params }: PageProps) {
               </ul>
             </div>
           ) : null}
+
+          {guides.length > 0 ? (
+            <div className="mt-10 border-t pt-8">
+              <h3 className="text-sm font-semibold tracking-tight">
+                Worth reading next
+              </h3>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {guides.map((guide) => (
+                  <li key={guide.slug}>
+                    <Link
+                      href={`/guides/${guide.slug}`}
+                      className="block h-full rounded-xl border bg-card p-4 transition-colors hover:border-primary/40"
+                    >
+                      <p className="font-medium leading-snug">{guide.title}</p>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                        {guide.description}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {readingMinutes(guide)} min read
+                      </p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -334,7 +366,11 @@ export default async function ToolPage({ params }: PageProps) {
  * Used to spread sibling links evenly across the route set: every route ends up
  * linked from somewhere, and no two adjacent pages carry an identical link list.
  */
-function linkWindow<T>(items: readonly T[], offset: number, count: number): T[] {
+function linkWindow<T>(
+  items: readonly T[],
+  offset: number,
+  count: number,
+): T[] {
   if (items.length <= count) return [...items];
   const start = ((offset % items.length) + items.length) % items.length;
   return Array.from(

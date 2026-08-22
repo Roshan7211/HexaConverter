@@ -39,9 +39,18 @@ export default async function SiteLayout({
   // The script loads only once a unit actually exists to fill. Loading it with
   // no units configured buys nothing — there is no ad to serve — while still
   // letting Google set cookies in a UK/EEA visitor's browser, which PECR does
-  // not allow before consent. Gating on the slots means advertising cannot
-  // start until the slot ids are filled in, which is the same moment the
-  // consent platform has to be in place anyway.
+  // not allow before consent.
+  //
+  // Consent itself is handled by Google's own certified CMP, configured under
+  // Privacy & messaging in the AdSense dashboard and delivered through the tag
+  // below — which is why there is no banner in this codebase and should not be
+  // one. A hand-rolled banner would not be IAB TCF certified, so it would fail
+  // Google's EU user consent policy while looking like it satisfied it.
+  //
+  // That makes this a deployment dependency rather than a code one. The privacy
+  // policy states plainly that consent is collected before advertising loads,
+  // so if the GDPR message is ever unpublished in the dashboard, that sentence
+  // in `/legal/privacy` stops being true. The two have to move together.
   const adsConfigured =
     Boolean(adsenseClient) &&
     Boolean(

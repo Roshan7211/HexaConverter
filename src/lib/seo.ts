@@ -195,3 +195,38 @@ export function softwareApplicationSchema(input: {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   };
 }
+
+/**
+ * Structured data for an editorial guide.
+ *
+ * `Article` rather than `BlogPosting`: these are reference pieces that get
+ * revised rather than dated posts, and `dateModified` carries more weight for
+ * them than `datePublished` does. The publisher is the site itself — there is
+ * no per-author byline, and inventing one would be worse than having none.
+ */
+export function articleSchema(input: {
+  headline: string;
+  description: string;
+  path: string;
+  datePublished: string;
+  dateModified?: string;
+}) {
+  const url = new URL(input.path, SITE.url).toString();
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: input.headline,
+    description: input.description,
+    url,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    datePublished: input.datePublished,
+    dateModified: input.dateModified ?? input.datePublished,
+    publisher: {
+      '@type': 'Organization',
+      name: SITE.name,
+      url: SITE.url,
+    },
+    inLanguage: 'en',
+  };
+}

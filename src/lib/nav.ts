@@ -54,18 +54,25 @@ export const PDF_TOOL_LINKS: readonly NavLink[] = PDF_OPERATIONS.map(
 
 export const PRIMARY_LINKS: readonly NavLink[] = [
   { label: 'Features', href: '/features' },
+  { label: 'Guides', href: '/guides' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'FAQ', href: '/faq' },
 ];
 
 /**
- * In-page anchors used by the header on the landing page only, where every
- * target actually exists on the current document.
+ * What the header shows on the landing page.
+ *
+ * Mostly in-page anchors, which resolve only here — which is why this list
+ * exists separately from `PRIMARY_LINKS` at all. Guides is the exception and is
+ * deliberately a real path: it was reachable from every other page's header and
+ * from nowhere in the header of the one page most people arrive on, which made
+ * the site's written content look like an afterthought rather than a section.
  */
 export const LANDING_SECTIONS: readonly NavLink[] = [
   { label: 'Features', href: '#features' },
   { label: 'Formats', href: '#formats' },
   { label: 'How it works', href: '#how-it-works' },
+  { label: 'Guides', href: '/guides' },
   { label: 'FAQ', href: '#faq' },
 ];
 
@@ -112,6 +119,7 @@ export const FOOTER_SECTIONS: readonly {
     title: 'Company',
     links: [
       { label: 'Features', href: '/features' },
+      { label: 'Guides', href: '/guides' },
       { label: 'About', href: '/about' },
       { label: 'Contact', href: '/contact' },
       { label: 'FAQ', href: '/faq' },

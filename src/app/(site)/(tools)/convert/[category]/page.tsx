@@ -3,6 +3,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { AdSlot } from '@/components/ads/ad-slot';
+import { CATEGORY_NOTES } from '@/content/category-notes';
+import { renderInline } from '@/components/marketing/guide-body';
+import { guidesForTopic } from '@/content/guides';
+import { readingMinutes } from '@/content/guides/types';
 import { Converter } from '@/components/convert/converter';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -95,6 +99,10 @@ export default async function CategoryConverterPage({ params }: PageProps) {
   const routes = CONVERSION_ROUTES.filter((route) =>
     sourceIds.includes(route.from),
   );
+
+  // Four at most: enough to give the page somewhere to lead, without turning
+  // the bottom of a converter into a reading list.
+  const categoryGuides = guidesForTopic(category).slice(0, 4);
 
   return (
     <>
@@ -220,6 +228,62 @@ export default async function CategoryConverterPage({ params }: PageProps) {
           />
         </aside>
       </div>
+
+      <section
+        className="border-t bg-card/40 py-14"
+        aria-labelledby="about-category"
+      >
+        <div className="container mx-auto max-w-3xl">
+          <h2
+            id="about-category"
+            className="text-2xl font-semibold tracking-tight"
+          >
+            How {meta.label.toLowerCase()} conversion works here
+          </h2>
+
+          {CATEGORY_NOTES[category].map((note) => (
+            <div key={note.heading} className="mt-8">
+              <h3 className="text-base font-semibold tracking-tight">
+                {note.heading}
+              </h3>
+              {note.body.map((paragraph, index) => (
+                <p
+                  key={index}
+                  className="mt-3 leading-relaxed text-muted-foreground"
+                >
+                  {renderInline(paragraph)}
+                </p>
+              ))}
+            </div>
+          ))}
+
+          {categoryGuides.length > 0 ? (
+            <div className="mt-12 border-t pt-8">
+              <h3 className="text-sm font-semibold tracking-tight">
+                Guides on {meta.label.toLowerCase()}
+              </h3>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {categoryGuides.map((guide) => (
+                  <li key={guide.slug}>
+                    <Link
+                      href={`/guides/${guide.slug}`}
+                      className="block h-full rounded-xl border bg-card p-4 transition-colors hover:border-primary/40"
+                    >
+                      <p className="font-medium leading-snug">{guide.title}</p>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                        {guide.description}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {readingMinutes(guide)} min read
+                      </p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      </section>
 
       <script
         type="application/ld+json"
