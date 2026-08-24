@@ -7,6 +7,15 @@ export interface NavLink {
   label: string;
   href: string;
   description?: string;
+  /** Set on links that leave the site, so renderers open them in a new tab. */
+  external?: boolean;
+}
+
+export interface AppLink extends NavLink {
+  external: true;
+  /** Short store name, used where there is only room for the destination. */
+  store: string;
+  platform: 'ios' | 'android';
 }
 
 const CONVERTER_MENU: Record<Category, { label: string; description: string }> =
@@ -51,6 +60,33 @@ export const PDF_TOOL_LINKS: readonly NavLink[] = PDF_OPERATIONS.map(
     description: PDF_OPERATION_SPECS[operation].description,
   }),
 );
+
+/**
+ * The native apps, which are the same converters shipped to the stores.
+ *
+ * These are the site's only outbound links, which is why `external` exists on
+ * `NavLink` at all: the header dropdown and the footer both have to render
+ * them as plain anchors with `rel="noopener noreferrer"` rather than as Next
+ * routes, and neither should ever mark them active.
+ */
+export const APP_LINKS: readonly AppLink[] = [
+  {
+    label: 'iPhone and iPad',
+    description: 'Download on the App Store',
+    href: 'https://apps.apple.com/us/app/hexaconverter/id6799017621',
+    store: 'App Store',
+    platform: 'ios',
+    external: true,
+  },
+  {
+    label: 'Android',
+    description: 'Get it on Google Play',
+    href: 'https://play.google.com/store/apps/details?id=com.hexavo.hexaconvert',
+    store: 'Google Play',
+    platform: 'android',
+    external: true,
+  },
+];
 
 export const PRIMARY_LINKS: readonly NavLink[] = [
   { label: 'Features', href: '/features' },

@@ -18,11 +18,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  APP_LINKS,
   CONVERTER_LINKS,
   LANDING_SECTIONS,
   PDF_TOOL_LINKS,
   PRIMARY_LINKS,
 } from '@/lib/nav';
+import { STORE_MARKS } from '@/components/layout/store-marks';
 import { cn } from '@/utils';
 
 export interface SiteHeaderProps {
@@ -148,6 +150,40 @@ export function SiteHeader({ user, accountsEnabled }: SiteHeaderProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Sits between the PDF tools menu and Features. No active state:
+              every destination is a store, so it can never match `pathname`. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1">
+                Get the app
+                <ChevronDown className="size-3.5" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-72">
+              {APP_LINKS.map((link) => {
+                const Icon = STORE_MARKS[link.platform];
+                return (
+                  <DropdownMenuItem key={link.href} asChild>
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2.5"
+                    >
+                      <Icon className="size-4 shrink-0" aria-hidden="true" />
+                      <span className="flex flex-col items-start gap-0.5">
+                        <span className="font-medium">{link.label}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {link.description}
+                        </span>
+                      </span>
+                    </a>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {navLinks.map((link) => (
             <Button
               key={link.href}
@@ -258,6 +294,25 @@ export function SiteHeader({ user, accountsEnabled }: SiteHeaderProps) {
                 {link.label}
               </Link>
             ))}
+
+            <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Get the app
+            </p>
+            {APP_LINKS.map((link) => {
+              const Icon = STORE_MARKS[link.platform];
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                >
+                  <Icon className="size-4 shrink-0" aria-hidden="true" />
+                  {link.label}
+                </a>
+              );
+            })}
 
             <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Company
