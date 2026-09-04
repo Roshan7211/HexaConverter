@@ -41,7 +41,23 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: 'npm run start',
+        /**
+         * The standalone server, not `next start`.
+         *
+         * `output: 'standalone'` is set, and `next start` is the wrong entry
+         * point for it — the same warning `ecosystem.config.cjs` carries for
+         * production. It boots far enough to serve most of the site, so the
+         * suite mostly passes and then fails a couple of tests for reasons that
+         * have nothing to do with the code: locally it served a guide page
+         * whose table never became scrollable, while the identical assertion
+         * passed against production and against a standalone build of the same
+         * commit. A false failure that survives a re-run is worse than no test.
+         *
+         * This runs the same entry point PM2 runs, so what the suite exercises
+         * is what deploys. It needs `npm run build` first, which `next start`
+         * did too.
+         */
+        command: 'node .next/standalone/server.js',
         url: BASE_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
