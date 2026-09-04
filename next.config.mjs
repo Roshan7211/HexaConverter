@@ -1,5 +1,33 @@
 /** @type {import('next').NextConfig} */
 
+import { HTML_LIMITED_BOT_UA_RE_STRING } from 'next/dist/shared/lib/router/utils/is-bot.js';
+
+/**
+ * User agents that must receive `<title>`, `<meta name="description">` and
+ * `<link rel="canonical">` inside `<head>`, rather than streamed into the body.
+ *
+ * Next streams metadata by default: the document is flushed with an empty head
+ * and React moves the tags up once it hydrates. Bots on this list get the old
+ * blocking behaviour instead, because they may not run JavaScript.
+ *
+ * **Googlebot is deliberately absent from Next's default list** — its regex is
+ * `[\w-]+-Google|Google-[\w-]+|…`, which matches `AdsBot-Google` and
+ * `Google-InspectionTool` but never the bare token `Googlebot`. The assumption
+ * is that Googlebot renders JavaScript, which it does, but only on a second
+ * pass that can lag days behind the crawl. On this site the effect was
+ * measurable: `</head>` closed at byte 3,054 while the title, description and
+ * canonical sat at byte ~52,000, inside `<body>` — so the HTML pass saw a page
+ * with no title and no canonical, and had to wait for the render queue to learn
+ * otherwise. For a domain still establishing itself that is a bad trade, so
+ * Googlebot is added back here.
+ *
+ * The `i` flag has to be carried over explicitly. `HTML_LIMITED_BOT_UA_RE_STRING`
+ * is `.source`, which drops flags, and the default pattern spells several
+ * agents in title case (`Bingbot`, `Twitterbot`). Rebuilding the regex without
+ * `i` would silently stop matching the real lowercase `bingbot` user agent.
+ */
+const htmlLimitedBots = new RegExp(`${HTML_LIMITED_BOT_UA_RE_STRING}|Googlebot`, 'i');
+
 /**
  * Whether this deployment is actually served over HTTPS.
  *
@@ -149,6 +177,7 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  htmlLimitedBots,
   // Emits a self-contained server bundle for the Docker runtime stage.
   output: 'standalone',
   compress: true,
@@ -272,7 +301,7 @@ const nextConfig = {
         // edge-cacheable header. A blanket rule here silently overrode it, so
         // `/api/formats` — identical for every visitor and changed only by a
         // deploy — was being revalidated on every converter page load.
-        source: '/api/:path((?!formats$).*)',
+        source: '/api/:path((?!formats$|traffic-advice$).*)',
         headers: [
           { key: 'Cache-Control', value: 'no-store, max-age=0' },
           { key: 'X-Robots-Tag', value: 'noindex' },
@@ -281,6 +310,25 @@ const nextConfig = {
       {
         source: '/api/formats',
         headers: [{ key: 'X-Robots-Tag', value: 'noindex' }],
+      },
+      {
+        // Same exemption, for the same reason: this document is identical for
+        // everyone and changes only on deploy, and `no-store` would make
+        // Chrome's prefetch proxy re-fetch it before every prefetch decision.
+        source: '/api/traffic-advice',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex' }],
+      },
+    ];
+  },
+
+  async rewrites() {
+    return [
+      // Chrome's Private Prefetch Proxy insists on this exact path. The handler
+      // sits under `/api` so it can set `application/trafficadvice+json`, which
+      // an extensionless file in `public/` cannot be given.
+      {
+        source: '/.well-known/traffic-advice',
+        destination: '/api/traffic-advice',
       },
     ];
   },

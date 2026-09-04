@@ -14,74 +14,95 @@ import { SITE } from '@/lib/seo';
 
 export const revalidate = 86400;
 
+/**
+ * When the generated pages' content was last materially revised.
+ *
+ * This is a hand-maintained constant, and it has to be: `lastmod` is supposed
+ * to describe the *content*, and the generated routes have no per-page date of
+ * their own the way a guide does.
+ *
+ * It replaces a `new Date()` call. Combined with `revalidate = 86400` that made
+ * every one of the 288 URLs claim it had been modified today, refreshed every
+ * 24 hours, forever — so a crawler comparing two fetches a week apart saw 288
+ * pages all rewritten twice, and none of it true. Google's documented response
+ * to a `lastmod` it cannot corroborate is to ignore the field across the whole
+ * sitemap, which spends a real ranking signal on noise. A date that only moves
+ * when the content moves is worth something; a date that always says "now" is
+ * worth less than nothing.
+ *
+ * Bump this when the pair prose, format profiles, conversion notes or category
+ * copy change materially — not for styling, refactors or dependency bumps.
+ * `2026-08-22` is when the per-pair prose landed, alongside the guides.
+ */
+const CONTENT_REVISED = new Date('2026-08-22T00:00:00.000Z');
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
   const url = (path: string) => new URL(path, SITE.url).toString();
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: url('/'),
-      lastModified: now,
+      lastModified: CONTENT_REVISED,
       changeFrequency: 'weekly',
       priority: 1,
     },
     {
       url: url('/features'),
-      lastModified: now,
+      lastModified: CONTENT_REVISED,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: url('/guides'),
-      lastModified: now,
+      lastModified: CONTENT_REVISED,
       changeFrequency: 'weekly',
       priority: 0.8,
     },
     {
       url: url('/faq'),
-      lastModified: now,
+      lastModified: CONTENT_REVISED,
       changeFrequency: 'monthly',
       priority: 0.6,
     },
     {
       url: url('/about'),
-      lastModified: now,
+      lastModified: CONTENT_REVISED,
       changeFrequency: 'yearly',
       priority: 0.4,
     },
     {
       url: url('/contact'),
-      lastModified: now,
+      lastModified: CONTENT_REVISED,
       changeFrequency: 'yearly',
       priority: 0.4,
     },
     {
       url: url('/legal/privacy'),
-      lastModified: now,
+      lastModified: CONTENT_REVISED,
       changeFrequency: 'yearly',
       priority: 0.3,
     },
     {
       url: url('/legal/terms'),
-      lastModified: now,
+      lastModified: CONTENT_REVISED,
       changeFrequency: 'yearly',
       priority: 0.3,
     },
     {
       url: url('/legal/cookies'),
-      lastModified: now,
+      lastModified: CONTENT_REVISED,
       changeFrequency: 'yearly',
       priority: 0.3,
     },
     {
       url: url('/legal/refunds'),
-      lastModified: now,
+      lastModified: CONTENT_REVISED,
       changeFrequency: 'yearly',
       priority: 0.3,
     },
     {
       url: url('/legal/attributions'),
-      lastModified: now,
+      lastModified: CONTENT_REVISED,
       changeFrequency: 'yearly',
       priority: 0.3,
     },
@@ -96,14 +117,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const categoryRoutes: MetadataRoute.Sitemap = CATEGORIES.map((category) => ({
     url: url(`/convert/${category}`),
-    lastModified: now,
+    lastModified: CONTENT_REVISED,
     changeFrequency: 'weekly',
     priority: 0.9,
   }));
 
   const toolRoutes: MetadataRoute.Sitemap = PUBLISHED_ROUTES.map((route) => ({
     url: url(`/tools/${routeSlug(route)}`),
-    lastModified: now,
+    lastModified: CONTENT_REVISED,
     changeFrequency: 'monthly',
     priority: 0.7,
   }));
@@ -112,7 +133,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     PDF_OPERATION_SPECS,
   ).map((spec) => ({
     url: url(`/tools/pdf/${spec.slug}`),
-    lastModified: now,
+    lastModified: CONTENT_REVISED,
     changeFrequency: 'monthly',
     priority: 0.8,
   }));
@@ -121,7 +142,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ARCHIVE_OPERATION_SPECS,
   ).map((spec) => ({
     url: url(`/tools/archive/${spec.slug}`),
-    lastModified: now,
+    lastModified: CONTENT_REVISED,
     changeFrequency: 'monthly',
     priority: 0.8,
   }));
