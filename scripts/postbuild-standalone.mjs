@@ -126,6 +126,17 @@ for (const { name, resolve } of binaryEntryPoints) {
     );
     process.exit(1);
   }
+  // The destination is derived by rebasing this path onto the standalone tree,
+  // so a package resolved from outside the project — a hoisted workspace root,
+  // a linked checkout — would produce a `../..` destination that writes outside
+  // the build output. Refuse rather than scribble somewhere unexpected.
+  if (path.relative(ROOT, sourcePath).startsWith('..')) {
+    console.error(
+      `postbuild: ${name} resolves to ${sourcePath}, outside the project root. ` +
+        'Copying it would write outside the standalone output.',
+    );
+    process.exit(1);
+  }
   required.push({ name, source: sourcePath });
 }
 
