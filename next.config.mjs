@@ -1,32 +1,34 @@
 /** @type {import('next').NextConfig} */
 
-import { HTML_LIMITED_BOT_UA_RE_STRING } from 'next/dist/shared/lib/router/utils/is-bot.js';
-
 /**
- * User agents that must receive `<title>`, `<meta name="description">` and
- * `<link rel="canonical">` inside `<head>`, rather than streamed into the body.
+ * Serve `<title>`, `<meta name="description">` and `<link rel="canonical">`
+ * inside `<head>` for **every** visitor, rather than streaming them.
  *
  * Next streams metadata by default: the document is flushed with an empty head
- * and React moves the tags up once it hydrates. Bots on this list get the old
- * blocking behaviour instead, because they may not run JavaScript.
+ * and React is expected to move the tags up during hydration. On this site it
+ * never moves them. Measured in a real browser on a live page, `<title>`,
+ * description, canonical, `og:title` and `robots` all end up parented to
+ * `<body>` and stay there — `document.head.querySelector('meta[name=description]')`
+ * returns null after hydration. So the tags are in the document but not in the
+ * one place the HTML spec says they mean anything.
  *
- * **Googlebot is deliberately absent from Next's default list** — its regex is
- * `[\w-]+-Google|Google-[\w-]+|…`, which matches `AdsBot-Google` and
- * `Google-InspectionTool` but never the bare token `Googlebot`. The assumption
- * is that Googlebot renders JavaScript, which it does, but only on a second
- * pass that can lag days behind the crawl. On this site the effect was
- * measurable: `</head>` closed at byte 3,054 while the title, description and
- * canonical sat at byte ~52,000, inside `<body>` — so the HTML pass saw a page
- * with no title and no canonical, and had to wait for the render queue to learn
- * otherwise. For a domain still establishing itself that is a bad trade, so
- * Googlebot is added back here.
+ * Next's `htmlLimitedBots` opt-out exists for agents that cannot run
+ * JavaScript, and its default list is too narrow to help here twice over.
+ * It omits the bare token `Googlebot` — the pattern is
+ * `[\w-]+-Google|Google-[\w-]+|…`, which matches `AdsBot-Google` but not
+ * `Googlebot` — and it knows nothing about the crawlers that actually dominate
+ * this site's traffic. Two weeks of access logs: Amazonbot 2,934 requests,
+ * GPTBot 1,814, OAI-SearchBot 1,814, PerplexityBot 1,023, ClaudeBot 983. None
+ * are on the list, and none execute JavaScript, so every one of them was
+ * indexing pages with no title and no canonical in `<head>`.
  *
- * The `i` flag has to be carried over explicitly. `HTML_LIMITED_BOT_UA_RE_STRING`
- * is `.source`, which drops flags, and the default pattern spells several
- * agents in title case (`Bingbot`, `Twitterbot`). Rebuilding the regex without
- * `i` would silently stop matching the real lowercase `bingbot` user agent.
+ * Matching every user agent is the whole fix: correct `<head>` for crawlers,
+ * for social previews, and for auditing tools. The flag is narrow — it feeds
+ * only `shouldServeStreamingMetadata`, and does not disable Suspense streaming
+ * for the rest of the page — so the cost is that the shell waits on
+ * `generateMetadata`, which here reads in-memory content maps.
  */
-const htmlLimitedBots = new RegExp(`${HTML_LIMITED_BOT_UA_RE_STRING}|Googlebot`, 'i');
+const htmlLimitedBots = /.*/;
 
 /**
  * Whether this deployment is actually served over HTTPS.
