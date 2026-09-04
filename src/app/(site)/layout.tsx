@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import { AdSenseScript } from '@/components/ads/adsense-script';
 import { AdsProvider } from '@/components/ads/ads-context';
+import { BfcacheAuthGuard } from '@/components/layout/bfcache-auth-guard';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { isAdminConfigured } from '@/lib/firebase/admin';
@@ -62,6 +63,10 @@ export default async function SiteLayout({
 
   return (
     <div className="flex min-h-dvh flex-col">
+      {/* Public pages are bfcache-eligible, so a restored page has to notice a
+          sign-in that happened after it was rendered. */}
+      <BfcacheAuthGuard />
+
       {showAds ? <AdSenseScript client={adsenseClient!} /> : null}
 
       <a href="#main-content" className="skip-link">

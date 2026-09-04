@@ -53,6 +53,36 @@ const SESSION_COOKIE = 'hexa_session';
  */
 const ANONYMOUS_PAGE_CACHE_CONTROL = 'private, no-cache, must-revalidate';
 
+/**
+ * A JavaScript-readable mirror of "is there a session", so the page can notice
+ * that it has been restored from bfcache into a browser that has since signed
+ * in or out.
+ *
+ * bfcache keeps a page exactly as it was, which is the point of it and also its
+ * one hazard: a page rendered signed-out stays signed-out after the visitor
+ * signs in, so pressing Back shows "Sign in" to someone who is not, and shows
+ * advertising to someone whose plan says they should never see it. That second
+ * case is the reason this exists — `(site)/layout.tsx` goes out of its way to
+ * resolve entitlement from the account rather than the guest cookie, precisely
+ * so a paying visitor is never shown ads, and a stale snapshot would undo that.
+ *
+ * The session cookie itself is `httpOnly` and unreadable from script, which is
+ * correct and non-negotiable — hence this separate flag. It carries one bit and
+ * no identity: `'1'` or `'0'`, never a token, an id or an email. It is written
+ * only when it disagrees with what the browser already sent, so the ordinary
+ * request adds no `Set-Cookie` at all.
+ */
+const AUTH_STATE_COOKIE = 'hx_auth';
+
+/**
+ * Deliberately longer than the two-week session, so the flag outlives what it
+ * describes. Expiring first would be the one harmful direction: the browser
+ * would drop it, the restored page would compare against `''`, and Back would
+ * reload for no reason. Should it ever disagree with the session, the next
+ * document request rewrites it.
+ */
+const AUTH_STATE_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
+
 /** Same shape as `createGuestId`, using the Web Crypto available at the edge. */
 function createGuestId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -118,11 +148,27 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  // Restore back/forward-cache eligibility for signed-out visitors. See the note
-  // on ANONYMOUS_PAGE_CACHE_CONTROL for why `no-store` is the only directive
-  // being dropped, and why signed-in pages keep it.
-  if (isDocumentRequest && !request.cookies.has(SESSION_COOKIE)) {
-    response.headers.set('Cache-Control', ANONYMOUS_PAGE_CACHE_CONTROL);
+  if (isDocumentRequest) {
+    const signedIn = request.cookies.has(SESSION_COOKIE);
+
+    // Restore back/forward-cache eligibility for signed-out visitors. See the
+    // note on ANONYMOUS_PAGE_CACHE_CONTROL for why `no-store` is the only
+    // directive being dropped, and why signed-in pages keep it.
+    if (!signedIn) {
+      response.headers.set('Cache-Control', ANONYMOUS_PAGE_CACHE_CONTROL);
+    }
+
+    // Only written on change, so a steady-state request carries no Set-Cookie.
+    const flag = signedIn ? '1' : '0';
+    if (request.cookies.get(AUTH_STATE_COOKIE)?.value !== flag) {
+      response.cookies.set(AUTH_STATE_COOKIE, flag, {
+        httpOnly: false,
+        sameSite: 'lax',
+        secure: request.nextUrl.protocol === 'https:',
+        path: '/',
+        maxAge: AUTH_STATE_COOKIE_MAX_AGE,
+      });
+    }
   }
 
   return response;
